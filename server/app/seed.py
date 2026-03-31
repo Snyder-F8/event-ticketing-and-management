@@ -1,13 +1,11 @@
-from app import create_app
-from app.models import db, Role, User, Category
+from app import create_app, db
+from app.models import Role, User, Category
 from werkzeug.security import generate_password_hash
 
 app = create_app()
 
 def seed_data():
     with app.app_context():
-
-        # ROLES
         roles = ["Admin", "Organizer", "User"]
         for r in roles:
             if not Role.query.filter_by(name=r).first():
@@ -15,7 +13,6 @@ def seed_data():
         db.session.commit()
         print("Roles seeded.")
 
-        # USERS
         users_data = [
             {"name": "Admin User", "email": "admin@example.com", "password": "admin123", "role_name": "Admin"},
             {"name": "Organizer User", "email": "organizer@example.com", "password": "organizer123", "role_name": "Organizer"},
@@ -36,14 +33,12 @@ def seed_data():
         db.session.commit()
         print("Users seeded.")
 
-        # CATEGORIES
         categories = ["Music", "Tech", "Business", "Sports"]
         for c in categories:
             if not Category.query.filter_by(name=c).first():
                 db.session.add(Category(name=c))
         db.session.commit()
         print("Categories seeded.")
-
         print("Database seeding completed successfully!")
 
 if __name__ == "__main__":
