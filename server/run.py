@@ -1,12 +1,7 @@
-from flask import Flask
-from config import Config
+from app import create_app
 
-app = Flask(__name__)
-app.config.from_object(Config)
-
-@app.route("/")
-def home():
-    return {"message": "Backend is running!"}
+# Create the app using the factory pattern
+app = create_app()
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
