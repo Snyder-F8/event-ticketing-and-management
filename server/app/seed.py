@@ -1,41 +1,50 @@
 from app import create_app
-from app.extensions import db
-from app.models import Role, User
+from app.models import db, Role, User, Category
+from werkzeug.security import generate_password_hash
 
 app = create_app()
 
 def seed_data():
     with app.app_context():
 
-        # Optional: clear existing data (careful in production!)
-        db.session.query(User).delete()
-        db.session.query(Role).delete()
-
-        # Roles
-        admin_role = Role(name="Admin")
-        organizer_role = Role(name="Organizer")
-        customer_role = Role(name="Customer")
-
-        db.session.add_all([admin_role, organizer_role, customer_role])
+        # ROLES
+        roles = ["Admin", "Organizer", "User"]
+        for r in roles:
+            if not Role.query.filter_by(name=r).first():
+                db.session.add(Role(name=r))
         db.session.commit()
+        print("Roles seeded.")
 
-        # Users
-        user1 = User(
-            name="Admin User",
-            email="admin@example.com",
-            role_id=admin_role.id
-        )
+        # USERS
+        users_data = [
+            {"name": "Admin User", "email": "admin@example.com", "password": "admin123", "role_name": "Admin"},
+            {"name": "Organizer User", "email": "organizer@example.com", "password": "organizer123", "role_name": "Organizer"},
+            {"name": "Regular User", "email": "user@example.com", "password": "user123", "role_name": "User"},
+        ]
 
-        user2 = User(
-            name="Organizer User",
-            email="organizer@example.com",
-            role_id=organizer_role.id
-        )
-
-        db.session.add_all([user1, user2])
+        for u in users_data:
+            if not User.query.filter_by(email=u["email"]).first():
+                role = Role.query.filter_by(name=u["role_name"]).first()
+                user = User(
+                    name=u["name"],
+                    email=u["email"],
+                    password=generate_password_hash(u["password"]),
+                    role_id=role.id,
+                    is_verified=True
+                )
+                db.session.add(user)
         db.session.commit()
+        print("Users seeded.")
 
-        print("Database seeded successfully!")
+        # CATEGORIES
+        categories = ["Music", "Tech", "Business", "Sports"]
+        for c in categories:
+            if not Category.query.filter_by(name=c).first():
+                db.session.add(Category(name=c))
+        db.session.commit()
+        print("Categories seeded.")
+
+        print("Database seeding completed successfully!")
 
 if __name__ == "__main__":
     seed_data()
