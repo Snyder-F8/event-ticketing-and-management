@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -14,3 +15,15 @@ createRoot(document.getElementById("root")).render(
     </Router>
   </StrictMode>,
 );
+=======
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+>>>>>>> c109806 (Work in progress: dashboards, auth UI, PWA setup)

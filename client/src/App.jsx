@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import { Routes, Route } from "react-router-dom";
@@ -26,7 +27,28 @@ function App() {
         <Footer />
       </div>
     </>
+=======
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Signup from "./pages/Signup";
+import Verify from "./pages/Verify";
+import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
+import OrganizerDashboard from "./pages/OrganizerDashboard";
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Signup />} />
+        <Route path="/verify" element={<Verify />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/organizer" element={<OrganizerDashboard />} />
+      </Routes>
+    </Router>
+>>>>>>> c109806 (Work in progress: dashboards, auth UI, PWA setup)
   );
 }
 
-export default App
+export default App;
