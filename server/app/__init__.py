@@ -3,9 +3,13 @@ from .config import Config
 from .extensions import db, migrate, jwt, cors
 
 
-def create_app():
+def create_app(config_class=None):
     app = Flask(__name__)
-    app.config.from_object(Config)
+
+    if config_class is None:
+        app.config.from_object(Config)
+    else:
+        app.config.from_object(config_class)
 
     # Initialize extensions
     db.init_app(app)
