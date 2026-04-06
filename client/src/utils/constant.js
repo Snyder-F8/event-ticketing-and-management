@@ -199,3 +199,36 @@ export const allEvents = [
     age: "21+",
   },
 ];
+
+export const tabs = ["Profile", "My Tickets"];
+
+export const ticketsData = [
+  {
+    id: "TCAKJAB",
+    title: "Goat Eating",
+    tickets: "Early Bird",
+    datetime: "Sat, 18 Apr 2026 | 1PM - 7PM",
+    location: "Nairobi",
+    quantity: 5,
+    bookingTime: "Apr 16 2026 07:46PM",
+    paymentMethod: "Mpesa/Credit/Debit Card",
+    poster: goat,
+    total: 607.1,
+    ticket: 495.0,
+    fee: 112.1,
+  },
+  {
+    id: "XYCKAJS",
+    title: "Sherehe Nation",
+    ticket: "VIP",
+    datetime: "Fri, 1 May 2026 | 6PM - LATE",
+    location: "Kisumu",
+    quantity: 3,
+    bookingTime: "Apr 25 2026 06:00PM",
+    paymentMethod: "Mpesa/Credit/Debit Card",
+    poster: sherehe,
+    total: 607.1,
+    ticket: 495.0,
+    fee: 112.1,
+  },
+];
