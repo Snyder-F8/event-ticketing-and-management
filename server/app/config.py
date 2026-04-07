@@ -27,3 +27,11 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     # You can add more secure settings here later
+
+
+class TestingConfig(Config):
+    """Testing configuration — uses in-memory SQLite"""
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    JWT_SECRET_KEY = "test-jwt-secret"
+    SECRET_KEY = "test-secret"
