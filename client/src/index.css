@@ -1,12 +1,9 @@
-<<<<<<< HEAD
-@import "tailwindcss";
-@import "slick-carousel/slick/slick.css";
-@import "slick-carousel/slick/slick-theme.css";
-=======
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import "slick-carousel/slick/slick.css";
+@import "slick-carousel/slick/slick-theme.css";
 
 :root {
   --primary: #4F8EF7;
@@ -32,7 +29,7 @@
 }
 
 body {
-  background-color: #f5f7fb; /* light gray like your screenshot */
+  background-color: var(--bg-main);
   color: var(--text-main);
   font-family: 'Inter', system-ui, sans-serif;
 }
@@ -64,4 +61,3 @@ table {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
->>>>>>> c109806 (Work in progress: dashboards, auth UI, PWA setup)
