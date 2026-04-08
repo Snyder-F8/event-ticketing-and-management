@@ -1,15 +1,22 @@
 from flask import Flask
 from .config import Config
-from .extensions import db, migrate
+from .extensions import db, migrate, jwt, cors
 
-def create_app():
+
+def create_app(config_class=None):
     app = Flask(__name__)
-    app.config.from_object(Config)
+
+    if config_class is None:
+        app.config.from_object(Config)
+    else:
+        app.config.from_object(config_class)
 
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
-
+    jwt.init_app(app)                       
+    cors.init_app(app)                      
+    
     # Import models so Alembic detects them
     with app.app_context():
         from .models import (
@@ -19,7 +26,11 @@ def create_app():
             Category
         )
 
-    # Basic route
+    
+    # Register Blueprints (route groups)
+    from .routes.auth_routes import auth_bp
+    app.register_blueprint(auth_bp)
+
     @app.route("/")
     def home():
         return {"message": "Backend is running successfully!"}

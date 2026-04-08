@@ -11,3 +11,5 @@ __pycache__/
 
 #Tests
 server/tests/
+.venv
+.pytest_cache
