@@ -137,7 +137,7 @@ def create_event():
 @events_bp.route("/<int:event_id>", methods=["PUT"])
 @jwt_required()
 def update_event(event_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     role = get_current_role()
     event = Event.query.get_or_404(event_id)
 
@@ -182,7 +182,7 @@ def update_event(event_id):
 @events_bp.route("/<int:event_id>", methods=["DELETE"])
 @jwt_required()
 def delete_event(event_id):
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     role = get_current_role()
     event = Event.query.get_or_404(event_id)
 

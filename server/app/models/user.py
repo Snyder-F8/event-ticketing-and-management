@@ -1,6 +1,7 @@
 from sqlalchemy import Index
 from .base import BaseModel
-from app import db
+from app.extensions import db
+
 
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -30,3 +31,13 @@ class User(BaseModel):
     role = db.relationship('Role', backref='users')
     events_organized = db.relationship('Event', backref='organizer', lazy=True)
     tickets_purchased = db.relationship('Ticket', backref='user', lazy=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "role": self.role.name if self.role else None,
+            "is_verified": self.is_verified,
+            "created_at": str(self.created_at) if self.created_at else None,
+        }

@@ -31,6 +31,12 @@ def create_app(config_class=None):
     from .routes.auth_routes import auth_bp
     app.register_blueprint(auth_bp)
 
+    from .blueprints.events.routes import events_bp
+    app.register_blueprint(events_bp)
+
+    from .blueprints.tickets.routes import tickets_bp
+    app.register_blueprint(tickets_bp)
+
     @app.route("/")
     def home():
         return {"message": "Backend is running successfully!"}
