@@ -11,8 +11,9 @@ export const LocationProvide = ({ children }) => {
     const fetchLocationData = async (latitude, longitude) => {
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
         );
+
         const data = await res.json();
         const userLocation = data?.address?.state;
         setLocation(userLocation);
@@ -31,12 +32,12 @@ export const LocationProvide = ({ children }) => {
       () => {
         setError("Unable to retrieve your location");
         setLoading(false);
-      }
+      },
     );
   }, []);
 
   return (
-    <locationContext.Provider value={{ location, loading, error }}>
+    <locationContext.Provider value={{ location, loading: true, error }}>
       {children}
     </locationContext.Provider>
   );
