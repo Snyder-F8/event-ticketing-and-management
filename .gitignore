@@ -13,3 +13,14 @@ __pycache__/
 server/tests/
 .venv
 .pytest_cache
+
+<<<<<<< HEAD
+NodeServer
+=======
+__pycache__
+instance/local.db
+
+NodeServer
+
+server/instance/local.db
+>>>>>>> develop
