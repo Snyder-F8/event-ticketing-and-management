@@ -13,3 +13,5 @@ __pycache__/
 server/tests/
 .venv
 .pytest_cache
+
+NodeServer
