@@ -43,8 +43,8 @@ def login():
     response, status_code = login_user(email, password)
     return jsonify(response), status_code
 
-# POST /auth/verify-email
-@auth_bp.route("/verify-email", methods=["POST"])
+# POST /auth/verify
+@auth_bp.route("/verify", methods=["POST"])
 def verify():
     data = request.get_json()
 

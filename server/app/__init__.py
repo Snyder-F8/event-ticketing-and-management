@@ -5,18 +5,42 @@ from .extensions import db, migrate, jwt, cors
 
 def create_app(config_class=None):
     app = Flask(__name__)
+
+    # =========================
+    # CONFIG
+    # =========================
     if config_class is None:
         app.config.from_object(Config)
     else:
         app.config.from_object(config_class)
 
-    # Initialize extensions
+    # =========================
+    # EXTENSIONS
+    # =========================
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    cors.init_app(app)
 
-    # Import models so Alembic detects them
+    # =========================
+    # CORS (FIXED - NO MORE ERRORS)
+    # =========================
+    cors.init_app(
+        app,
+        resources={r"/*": {"origins": "*"}},
+        supports_credentials=False
+    )
+
+    # FORCE OPTIONS HANDLING (CRITICAL FIX FOR PRE-FLIGHT)
+    @app.after_request
+    def after_request(response):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        return response
+
+    # =========================
+    # IMPORT MODELS (FOR MIGRATIONS)
+    # =========================
     with app.app_context():
         from .models import (
             User, Role,
@@ -25,7 +49,9 @@ def create_app(config_class=None):
             Category
         )
 
-    # Register Blueprints
+    # =========================
+    # BLUEPRINTS
+    # =========================
     from .routes.auth_routes import auth_bp
     from .blueprints.events.routes import events_bp
     from .blueprints.tickets.routes import tickets_bp
@@ -34,6 +60,9 @@ def create_app(config_class=None):
     app.register_blueprint(events_bp)
     app.register_blueprint(tickets_bp)
 
+    # =========================
+    # HEALTH CHECK
+    # =========================
     @app.route("/")
     def home():
         return {"message": "Backend is running successfully!"}
