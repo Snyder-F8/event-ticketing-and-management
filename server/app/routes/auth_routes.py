@@ -41,7 +41,7 @@ def register():
 
 
 # =========================
-# LOGIN (FIXED)
+# LOGIN (CLEAN + FIXED)
 # =========================
 @auth_bp.route("/login", methods=["POST", "OPTIONS"])
 def login():
@@ -61,14 +61,15 @@ def login():
 
     result, status_code = login_user(email, password)
 
+    # ❌ If login failed
     if status_code != 200:
         return jsonify(result), status_code
 
-    # ✅ IMPORTANT: return EXACT backend structure
+    # ✅ SAFE RESPONSE FORMAT (matches frontend expectations)
     return jsonify({
         "access_token": result.get("access_token"),
         "user": result.get("user"),
-        "message": result.get("message")
+        "message": result.get("message", "Login successful")
     }), 200
 
 
@@ -91,7 +92,7 @@ def verify_email_route():
 
 
 # =========================
-# GET CURRENT USER
+# CURRENT USER (JWT TEST)
 # =========================
 @auth_bp.route("/me", methods=["GET", "OPTIONS"])
 @jwt_required()
@@ -104,7 +105,8 @@ def get_current_user():
     return jsonify({
         "user": {
             "id": claims.get("sub"),
-            "role": str(claims.get("role", "user")).lower()
+            "role": str(claims.get("role", "user")).lower(),
+            "email": claims.get("email")
         }
     }), 200
 

@@ -6,19 +6,20 @@ from app.extensions import db
 from app.models.user import User, Role
 
 
+# =========================
 # REGISTER
+# =========================
 def register_user(name: str, email: str, password: str, role_name: str = "User"):
-    # Duplicate check
+    # Check if user exists
     if User.query.filter_by(email=email).first():
         return {"error": "A user with this email already exists."}, 409
 
-    # Role lookup
+    # Get role
     role = Role.query.filter_by(name=role_name).first()
     if not role:
         return {"error": f"Role '{role_name}' does not exist."}, 400
 
     hashed_password = generate_password_hash(password)
-
     verification_token = secrets.token_urlsafe(32)
 
     # Create user
@@ -30,6 +31,7 @@ def register_user(name: str, email: str, password: str, role_name: str = "User")
         is_verified=False,
         verification_token=verification_token,
     )
+
     db.session.add(user)
     db.session.commit()
 
@@ -39,27 +41,34 @@ def register_user(name: str, email: str, password: str, role_name: str = "User")
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "role": role.name,
+            "role": role.name.lower(),  # ✅ FIX
             "is_verified": user.is_verified,
         },
-        "verification_token": verification_token,   # In production, send via email only
+        "verification_token": verification_token,  # Dev only
     }, 201
 
 
-# LOGIN
+# =========================
+# LOGIN (FIXED)
+# =========================
 def login_user(email: str, password: str):
     user = User.query.filter_by(email=email).first()
 
+    # Validate credentials
     if not user or not check_password_hash(user.password, password):
         return {"error": "Invalid email or password."}, 401
+
     if not user.is_verified:
         return {"error": "Please verify your email before logging in."}, 403
 
-    # JWT generation
+    # ✅ FIX: Normalize role
+    role_name = user.role.name.lower() if user.role else "user"
+
+    # Generate JWT
     access_token = create_access_token(
         identity=str(user.id),
         additional_claims={
-            "role": user.role.name,
+            "role": role_name,
             "email": user.email,
         },
         expires_delta=timedelta(hours=24),
@@ -72,11 +81,14 @@ def login_user(email: str, password: str):
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "role": user.role.name,
+            "role": role_name,  # ✅ FIX
         },
     }, 200
 
+
+# =========================
 # VERIFY EMAIL
+# =========================
 def verify_email(token: str):
     user = User.query.filter_by(verification_token=token).first()
 
@@ -89,7 +101,10 @@ def verify_email(token: str):
 
     return {"message": "Email verified successfully. You can now log in."}, 200
 
-# GET ALL USERS (Admin only)
+
+# =========================
+# GET ALL USERS (ADMIN)
+# =========================
 def get_all_users():
     users = User.query.all()
 
@@ -99,9 +114,12 @@ def get_all_users():
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "role": user.role.name if user.role else None,
+            "role": user.role.name.lower() if user.role else "user",  # ✅ FIX
             "is_verified": user.is_verified,
             "created_at": str(user.created_at) if user.created_at else None,
         })
 
-    return {"users": users_list, "total": len(users_list)}, 200
+    return {
+        "users": users_list,
+        "total": len(users_list)
+    }, 200

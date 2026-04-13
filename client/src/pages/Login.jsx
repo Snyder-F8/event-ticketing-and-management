@@ -13,7 +13,6 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     setError("");
 
     const cleanEmail = email.trim();
@@ -34,11 +33,11 @@ export default function Login() {
 
       console.log("LOGIN RESPONSE:", res.data);
 
-      // ✅ FIX HERE (IMPORTANT)
-      const token = res.data?.access_token;   // 🔥 FIXED
+      // ✅ Backend response
+      const token = res.data?.access_token;
       const user = res.data?.user;
 
-      // ❌ HARD VALIDATION
+      // ❌ Validate response
       if (!token) {
         setError(res.data?.error || "Login failed: no token returned");
         return;
@@ -49,27 +48,21 @@ export default function Login() {
         return;
       }
 
-      // Save auth
+      // Save auth data
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
+      // Role routing
       const role = (user.role || "").toLowerCase();
 
-      switch (role) {
-        case "admin":
-          navigate("/admin");
-          break;
-
-        case "organizer":
-          navigate("/organizer");
-          break;
-
-        case "user":
-          navigate("/dashboard");
-          break;
-
-        default:
-          setError("Unknown role");
+      if (role === "admin") {
+        navigate("/admin");
+      } else if (role === "organizer") {
+        navigate("/organizer");
+      } else if (role === "user") {
+        navigate("/dashboard");
+      } else {
+        setError("Unknown user role: " + role);
       }
 
     } catch (err) {
@@ -78,7 +71,7 @@ export default function Login() {
       setError(
         err.response?.data?.error ||
         err.response?.data?.message ||
-        "Login failed. Please check credentials"
+        "Login failed. Please check credentials."
       );
     } finally {
       setLoading(false);
@@ -88,15 +81,18 @@ export default function Login() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
 
-      {/* LEFT */}
+      {/* LEFT SIDE */}
       <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 text-white p-10">
         <img src={logo} alt="Logo" className="h-20 mb-6 object-contain" />
         <h1 className="text-4xl font-bold mb-4 text-center">
           Welcome Back
         </h1>
+        <p className="text-lg text-center max-w-sm opacity-90">
+          Manage your events and tickets seamlessly.
+        </p>
       </div>
 
-      {/* RIGHT */}
+      {/* RIGHT SIDE */}
       <div className="flex items-center justify-center bg-gray-100 px-4">
         <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8">
 
@@ -107,6 +103,7 @@ export default function Login() {
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
+
             <h2 className="text-2xl font-bold text-center mb-4">
               Login
             </h2>
@@ -116,7 +113,7 @@ export default function Login() {
               placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border px-4 py-2 rounded-lg"
+              className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
 
@@ -125,22 +122,23 @@ export default function Login() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border px-4 py-2 rounded-lg"
+              className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg"
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
             >
               {loading ? "Logging in..." : "Login"}
             </button>
+
           </form>
 
           <p className="text-center text-sm mt-6">
             Don’t have an account?{" "}
-            <Link to="/signup" className="text-blue-600">
+            <Link to="/signup" className="text-blue-600 font-medium">
               Sign Up
             </Link>
           </p>
