@@ -41,7 +41,7 @@ def register():
 
 
 # =========================
-# LOGIN (CLEAN + FIXED)
+# LOGIN (FIXED)
 # =========================
 @auth_bp.route("/login", methods=["POST", "OPTIONS"])
 def login():
@@ -61,14 +61,16 @@ def login():
 
     result, status_code = login_user(email, password)
 
-    # ❌ If login failed
     if status_code != 200:
         return jsonify(result), status_code
 
-    # ✅ SAFE RESPONSE FORMAT (matches frontend expectations)
+    # ✅ FIX: frontend expects "token"
     return jsonify({
-        "access_token": result.get("access_token"),
-        "user": result.get("user"),
+        "token": result.get("access_token"),
+        "user": {
+            "id": result["user"]["id"],
+            "role": str(result["user"]["role"]).lower()
+        },
         "message": result.get("message", "Login successful")
     }), 200
 
@@ -112,7 +114,7 @@ def get_current_user():
 
 
 # =========================
-# GET USERS (ADMIN ONLY)
+# GET ALL USERS (ADMIN ONLY)
 # =========================
 @auth_bp.route("/users", methods=["GET", "OPTIONS"])
 @jwt_required()
@@ -122,7 +124,9 @@ def list_users():
 
     claims = get_jwt()
 
-    if str(claims.get("role", "")).lower() != "admin":
+    role = str(claims.get("role", "")).lower()
+
+    if role != "admin":
         return jsonify({"error": "Admin access required"}), 403
 
     response, status_code = get_all_users()

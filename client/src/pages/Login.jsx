@@ -14,64 +14,72 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-
-    const cleanEmail = email.trim();
-    const cleanPassword = password.trim();
-
-    if (!cleanEmail || !cleanPassword) {
-      setError("Please fill in all fields");
-      return;
-    }
-
     setLoading(true);
 
     try {
       const res = await API.post("/auth/login", {
-        email: cleanEmail,
-        password: cleanPassword,
+        email,
+        password,
       });
 
       console.log("LOGIN RESPONSE:", res.data);
 
-      // ✅ Backend response
-      const token = res.data?.access_token;
-      const user = res.data?.user;
+      // Flexible backend support
+      const token =
+        res.data.token ||
+        res.data.access_token ||
+        res.data.accessToken;
 
-      // ❌ Validate response
+      const user =
+        res.data.user ||
+        res.data.data?.user ||
+        null;
+
+      const role = (
+        user?.role ||
+        res.data.role ||
+        res.data.user_role ||
+        ""
+      ).toLowerCase();
+
+      // VALIDATION
       if (!token) {
-        setError(res.data?.error || "Login failed: no token returned");
-        return;
+        throw new Error("Token missing in backend response");
       }
 
-      if (!user) {
-        setError("Login failed: missing user data");
-        return;
+      if (!role) {
+        throw new Error("Role missing in backend response");
       }
 
-      // Save auth data
+      // STORE AUTH DATA
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("role", role);
 
-      // Role routing
-      const role = (user.role || "").toLowerCase();
-
-      if (role === "admin") {
-        navigate("/admin");
-      } else if (role === "organizer") {
-        navigate("/organizer");
-      } else if (role === "user") {
-        navigate("/dashboard");
-      } else {
-        setError("Unknown user role: " + role);
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
       }
+
+      // ROLE ROUTING
+      setTimeout(() => {
+        if (role === "admin") {
+          navigate("/admin");
+        } else if (role === "organizer") {
+          navigate("/organizer");
+        } else if (role === "user") {
+          navigate("/dashboard");
+        } else {
+          setError("Unknown role: " + role);
+        }
+      }, 100);
 
     } catch (err) {
-      console.log("LOGIN ERROR:", err.response?.data);
+      console.error("LOGIN ERROR:", err);
 
       setError(
         err.response?.data?.error ||
         err.response?.data?.message ||
-        "Login failed. Please check credentials."
+        err.message ||
+        "Login failed. Please check your credentials."
       );
     } finally {
       setLoading(false);

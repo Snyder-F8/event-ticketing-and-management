@@ -1,6 +1,11 @@
 // src/App.jsx
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 // Pages
 import Signup from "./pages/Signup.jsx";
@@ -12,22 +17,49 @@ import OrganizerDashboard from "./pages/OrganizerDashboard.jsx";
 // Components
 import Header from "./components/Header.jsx";
 import Footer from "./components/Footer.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
   return (
     <Router>
       <div className="flex flex-col min-h-screen">
         <Header />
+
         <main className="flex-grow">
           <Routes>
-            <Route path="/" element={<Navigate to="/signup" />} /> {/* default redirect */}
+            {/* Default route */}
+            <Route path="/" element={<Navigate to="/signup" replace />} />
+
+            {/* Auth flow */}
             <Route path="/signup" element={<Signup />} />
             <Route path="/verify" element={<Verify />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/organizer" element={<OrganizerDashboard />} />
+
+            {/* DASHBOARDS (PROTECTED) */}
+
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/organizer"
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <OrganizerDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/signup" replace />} />
           </Routes>
         </main>
+
         <Footer />
       </div>
     </Router>
