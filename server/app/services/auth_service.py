@@ -13,6 +13,8 @@ def register_user(name: str, email: str, password: str, role_name: str = "User")
         return {"error": "A user with this email already exists."}, 409
 
     # Role lookup
+    if role_name:
+        role_name = role_name.title()
     role = Role.query.filter_by(name=role_name).first()
     if not role:
         return {"error": f"Role '{role_name}' does not exist."}, 400
