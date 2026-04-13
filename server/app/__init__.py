@@ -5,6 +5,7 @@ from .extensions import db, migrate, jwt, cors
 
 def create_app(config_class=None):
     app = Flask(__name__)
+
     if config_class is None:
         app.config.from_object(Config)
     else:
@@ -14,7 +15,13 @@ def create_app(config_class=None):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    cors.init_app(app)
+
+    # ✅ FIXED CORS (IMPORTANT PART)
+    cors.init_app(
+        app,
+        origins=["http://localhost:5173"],
+        supports_credentials=True
+    )
 
     # Import models so Alembic detects them
     with app.app_context():

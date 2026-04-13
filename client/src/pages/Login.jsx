@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
@@ -6,35 +5,82 @@ import API from "../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState(""); // Role selection
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setLoading(true);
 
     try {
-      // Send role along with email & password
-      const res = await API.post("/auth/login", { email, password, role });
+      const res = await API.post("/auth/login", {
+        email,
+        password,
+      });
 
-      if (res.status === 200) {
-        localStorage.setItem("token", res.data.token);
+      console.log("LOGIN RESPONSE:", res.data);
 
-        // Navigate according to backend-confirmed role
-        if (res.data.user.role === "admin") {
-          navigate("/admin");
-        } else if (res.data.user.role === "organizer") {
-          navigate("/organizer");
-        } else {
-          setError("Unknown role. Contact support.");
-        }
+      // Flexible backend support
+      const token =
+        res.data.token ||
+        res.data.access_token ||
+        res.data.accessToken;
+
+      const user =
+        res.data.user ||
+        res.data.data?.user ||
+        null;
+
+      const role = (
+        user?.role ||
+        res.data.role ||
+        res.data.user_role ||
+        ""
+      ).toLowerCase();
+
+      // VALIDATION
+      if (!token) {
+        throw new Error("Token missing in backend response");
       }
+
+      if (!role) {
+        throw new Error("Role missing in backend response");
+      }
+
+      // STORE AUTH DATA
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role);
+
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      // ROLE ROUTING
+      setTimeout(() => {
+        if (role === "admin") {
+          navigate("/admin");
+        } else if (role === "organizer") {
+          navigate("/organizer");
+        } else if (role === "user") {
+          navigate("/dashboard");
+        } else {
+          setError("Unknown role: " + role);
+        }
+      }, 100);
+
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      console.error("LOGIN ERROR:", err);
+
+      setError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        "Login failed. Please check your credentials."
+      );
     } finally {
       setLoading(false);
     }
@@ -43,66 +89,68 @@ export default function Login() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
 
-      {/* Left */}
+      {/* LEFT SIDE */}
       <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 text-white p-10">
         <img src={logo} alt="Logo" className="h-20 mb-6 object-contain" />
-        <h1 className="text-4xl font-bold mb-4 text-center">Welcome Back</h1>
+        <h1 className="text-4xl font-bold mb-4 text-center">
+          Welcome Back
+        </h1>
         <p className="text-lg text-center max-w-sm opacity-90">
-          Manage your events and track ticket sales in real time.
+          Manage your events and tickets seamlessly.
         </p>
       </div>
 
-      {/* Right */}
+      {/* RIGHT SIDE */}
       <div className="flex items-center justify-center bg-gray-100 px-4">
-        <div className="w-full max-w-md backdrop-blur-lg bg-white/80 shadow-2xl rounded-2xl p-8">
-          {error && <p className="bg-red-100 text-red-600 p-2 rounded mb-4 text-center">{error}</p>}
+        <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8">
+
+          {error && (
+            <p className="bg-red-100 text-red-600 p-2 rounded mb-4 text-center">
+              {error}
+            </p>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Role selection */}
-            <div>
-              <label className="block mb-2 font-medium text-gray-700">Login as:</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full border px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select Role</option>
-                <option value="admin">Admin</option>
-                <option value="organizer">Organizer</option>
-              </select>
-            </div>
+
+            <h2 className="text-2xl font-bold text-center mb-4">
+              Login
+            </h2>
 
             <input
               type="email"
               placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
+
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200 shadow-md hover:shadow-lg"
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
             >
               {loading ? "Logging in..." : "Login"}
             </button>
+
           </form>
 
-          <p className="text-center text-sm mt-6 text-gray-500">
+          <p className="text-center text-sm mt-6">
             Don’t have an account?{" "}
-            <Link to="/" className="text-blue-600 font-medium hover:underline">Sign Up</Link>
+            <Link to="/signup" className="text-blue-600 font-medium">
+              Sign Up
+            </Link>
           </p>
+
         </div>
       </div>
     </div>

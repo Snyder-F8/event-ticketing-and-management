@@ -9,11 +9,17 @@ from datetime import datetime
 events_bp = Blueprint("events", __name__, url_prefix="/api/events")
 
 
+# =========================
+# ROLE HELPER
+# =========================
 def get_current_role():
     claims = get_jwt()
     return claims.get("role", "").lower()
 
 
+# =========================
+# PUBLIC: GET EVENTS
+# =========================
 @events_bp.route("", methods=["GET"])
 def get_events():
     page = request.args.get("page", 1, type=int)
@@ -26,10 +32,12 @@ def get_events():
 
     if location:
         query = query.filter(Event.location.ilike(f"%{location}%"))
+
     if category:
         query = query.join(Event.categories).filter(
             Category.name.ilike(f"%{category}%")
         )
+
     if search:
         query = query.filter(db.or_(
             Event.title.ilike(f"%{search}%"),
@@ -52,10 +60,14 @@ def get_events():
     }), 200
 
 
+# =========================
+# ORGANIZER: MY EVENTS
+# =========================
 @events_bp.route("/my-events", methods=["GET"])
 @jwt_required()
 def my_events():
     current_user_id = get_jwt_identity()
+
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 10, type=int)
 
@@ -79,21 +91,29 @@ def my_events():
     }), 200
 
 
+# =========================
+# SINGLE EVENT
+# =========================
 @events_bp.route("/<int:event_id>", methods=["GET"])
 def get_event(event_id):
     event = Event.query.get_or_404(event_id)
     return jsonify({"event": event.to_dict()}), 200
 
 
+# =========================
+# CREATE EVENT (ORG/ADMIN)
+# =========================
 @events_bp.route("", methods=["POST"])
 @jwt_required()
 def create_event():
     role = get_current_role()
+
     if role not in ("organizer", "admin"):
         return jsonify({"error": "Access denied. Organizers only."}), 403
 
     data = request.get_json()
     errors = validate_event_data(data)
+
     if errors:
         return jsonify({"errors": errors}), 422
 
@@ -106,14 +126,17 @@ def create_event():
             organizer_id=get_jwt_identity(),
             status="pending",
         )
+
         db.session.add(event)
         db.session.flush()
 
+        # Categories
         for cat_name in data.get("categories", []):
             category = Category.query.filter_by(name=cat_name).first()
             if category:
                 event.categories.append(category)
 
+        # Ticket types
         for tt in data.get("ticket_types", []):
             ticket_type = TicketType(
                 event_id=event.id,
@@ -124,6 +147,7 @@ def create_event():
             db.session.add(ticket_type)
 
         db.session.commit()
+
         return jsonify({
             "message": "Event created. Pending admin approval.",
             "event": event.to_dict()
@@ -134,11 +158,15 @@ def create_event():
         return jsonify({"error": "Failed to create event.", "details": str(e)}), 500
 
 
+# =========================
+# UPDATE EVENT
+# =========================
 @events_bp.route("/<int:event_id>", methods=["PUT"])
 @jwt_required()
 def update_event(event_id):
     current_user_id = get_jwt_identity()
     role = get_current_role()
+
     event = Event.query.get_or_404(event_id)
 
     if role != "admin" and event.organizer_id != current_user_id:
@@ -154,7 +182,7 @@ def update_event(event_id):
         try:
             event.event_date = datetime.fromisoformat(data["event_date"])
         except ValueError:
-            return jsonify({"error": "Invalid date. Use YYYY-MM-DDTHH:MM:SS"}), 422
+            return jsonify({"error": "Invalid date format"}), 422
 
     if "categories" in data:
         event.categories = []
@@ -165,7 +193,7 @@ def update_event(event_id):
 
     if role == "admin" and "status" in data:
         if data["status"] not in ("approved", "rejected", "pending"):
-            return jsonify({"error": "Invalid status."}), 422
+            return jsonify({"error": "Invalid status"}), 422
         event.status = data["status"]
 
     try:
@@ -174,16 +202,21 @@ def update_event(event_id):
             "message": "Event updated successfully.",
             "event": event.to_dict()
         }), 200
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Failed to update event.", "details": str(e)}), 500
+        return jsonify({"error": "Update failed.", "details": str(e)}), 500
 
 
+# =========================
+# DELETE EVENT
+# =========================
 @events_bp.route("/<int:event_id>", methods=["DELETE"])
 @jwt_required()
 def delete_event(event_id):
     current_user_id = get_jwt_identity()
     role = get_current_role()
+
     event = Event.query.get_or_404(event_id)
 
     if role != "admin" and event.organizer_id != current_user_id:
@@ -193,11 +226,15 @@ def delete_event(event_id):
         db.session.delete(event)
         db.session.commit()
         return jsonify({"message": "Event deleted successfully."}), 200
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Failed to delete event.", "details": str(e)}), 500
+        return jsonify({"error": "Delete failed.", "details": str(e)}), 500
 
 
+# =========================
+# ADMIN: APPROVE / REJECT
+# =========================
 @events_bp.route("/<int:event_id>/approve", methods=["PATCH"])
 @jwt_required()
 def approve_event(event_id):
@@ -218,22 +255,30 @@ def approve_event(event_id):
 
     try:
         db.session.commit()
+
         if event.organizer:
             send_event_approval_email(
                 organizer=event.organizer,
                 event=event,
                 approved=(action == "approve")
             )
+
         return jsonify({"message": message, "event": event.to_dict()}), 200
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Failed.", "details": str(e)}), 500
+        return jsonify({"error": "Action failed.", "details": str(e)}), 500
 
 
+# =========================
+# VALIDATION
+# =========================
 def validate_event_data(data):
     errors = {}
+
     if not data.get("title", "").strip():
         errors["title"] = "Title is required."
+
     if not data.get("event_date"):
         errors["event_date"] = "Event date is required."
     else:
@@ -243,11 +288,15 @@ def validate_event_data(data):
             errors["event_date"] = "Use format: YYYY-MM-DDTHH:MM:SS"
 
     valid_names = {"Early Bird", "MVP", "Regular"}
+
     for i, tt in enumerate(data.get("ticket_types", [])):
         if tt.get("name") not in valid_names:
-            errors[f"ticket_type_{i}_name"] = "Name must be: Early Bird, MVP, or Regular."
+            errors[f"ticket_type_{i}_name"] = "Invalid ticket name."
+
         if not isinstance(tt.get("price"), (int, float)) or tt["price"] < 0:
-            errors[f"ticket_type_{i}_price"] = "Price must be non-negative."
+            errors[f"ticket_type_{i}_price"] = "Price must be >= 0."
+
         if not isinstance(tt.get("quantity"), int) or tt["quantity"] < 1:
-            errors[f"ticket_type_{i}_quantity"] = "Quantity must be a positive integer."
+            errors[f"ticket_type_{i}_quantity"] = "Quantity must be >= 1."
+
     return errors

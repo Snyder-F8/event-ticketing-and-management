@@ -1,3 +1,14 @@
 .env
 __pycache__
 instance/local.db
+
+# Database files
+*.db
+server/instance/*.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
