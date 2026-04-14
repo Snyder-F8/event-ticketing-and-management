@@ -44,12 +44,12 @@ export default function Signup() {
           <form onSubmit={handleSignup} className="space-y-4" id="signup-form">
             <div>
               <label className="block text-sm text-gray-600 mb-2">Full Name</label>
-              <input type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required id="signup-name-input"
+              <input type="text" placeholder="Niko Kadi" value={name} onChange={(e) => setName(e.target.value)} required id="signup-name-input"
                 className="w-full bg-blue-5 border border-blue-20 rounded-xl px-4 py-3 text-heading text-sm placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-2">Email</label>
-              <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required id="signup-email-input"
+              <input type="email" placeholder="nikokadi@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required id="signup-email-input"
                 className="w-full bg-blue-5 border border-blue-20 rounded-xl px-4 py-3 text-heading text-sm placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
             </div>
             <div>
