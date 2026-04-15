@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
-from app.services.auth_service import register_user, login_user, verify_email, get_all_users
+from app.services.auth_service import (
+    register_user, login_user, verify_email, resend_verification, 
+    get_all_users, request_password_reset, reset_password
+)
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -53,6 +56,16 @@ def verify():
 
     response, status_code = verify_email(data["token"])
     return jsonify(response), status_code
+    
+# POST /auth/resend-verification
+@auth_bp.route("/resend-verification", methods=["POST"])
+def resend_v():
+    data = request.get_json()
+    if not data or not data.get("email"):
+        return jsonify({"error": "Email is required."}), 400
+        
+    response, status_code = resend_verification(data["email"])
+    return jsonify(response), status_code
 
 # GET /auth/users  (Admin only — requires JWT)
 @auth_bp.route("/users", methods=["GET"])
@@ -63,5 +76,29 @@ def list_users():
         return jsonify({"error": "Admin access required."}), 403
 
     response, status_code = get_all_users()
+    return jsonify(response), status_code
+    
+# POST /auth/forgot-password
+@auth_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.get_json()
+    email = data.get("email")
+    if not email:
+        return jsonify({"error": "Email is required."}), 400
+    
+    response, status_code = request_password_reset(email)
+    return jsonify(response), status_code
+
+# POST /auth/reset-password
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_pwd():
+    data = request.get_json()
+    token = data.get("token")
+    new_password = data.get("password")
+    
+    if not token or not new_password:
+        return jsonify({"error": "Token and new password are required."}), 400
+        
+    response, status_code = reset_password(token, new_password)
     return jsonify(response), status_code
 
