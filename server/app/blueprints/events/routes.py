@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from werkzeug.utils import secure_filename
+import os
 from app.extensions import db
-from app.models.event import Event, TicketType
+from app.models.event import Event, TicketType, Image
 from app.models.category import Category
 from app.utils.email import send_event_approval_email
 from datetime import datetime
@@ -85,6 +87,32 @@ def get_event(event_id):
     return jsonify({"event": event.to_dict()}), 200
 
 
+@events_bp.route("/upload", methods=["POST"])
+@jwt_required()
+def upload_image():
+    if get_current_role() not in ("organizer", "admin"):
+        return jsonify({"error": "Access denied"}), 403
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if file:
+        filename = secure_filename(file.filename)
+        filename = f"{int(datetime.now().timestamp())}_{filename}"
+        
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        file.save(os.path.join(upload_folder, filename))
+        
+        # Build absolute URL using base request info
+        base_url = request.host_url.rstrip('/')
+        return jsonify({"url": f"{base_url}/static/uploads/{filename}"}), 200
+
 @events_bp.route("", methods=["POST"])
 @jwt_required()
 def create_event():
@@ -108,6 +136,10 @@ def create_event():
         )
         db.session.add(event)
         db.session.flush()
+
+        if "image_url" in data and data["image_url"].strip():
+            image = Image(event_id=event.id, image_url=data["image_url"].strip())
+            db.session.add(image)
 
         for cat_name in data.get("categories", []):
             category = Category.query.filter_by(name=cat_name).first()
@@ -198,6 +230,22 @@ def delete_event(event_id):
         return jsonify({"error": "Failed to delete event.", "details": str(e)}), 500
 
 
+@events_bp.route("/all", methods=["GET"])
+@jwt_required()
+def get_all_events_admin():
+    if get_current_role() != "admin":
+        return jsonify({"error": "Admin access required."}), 403
+
+    status = request.args.get("status")
+    query = Event.query
+
+    if status:
+        query = query.filter_by(status=status)
+
+    events = query.order_by(Event.created_at.desc()).all()
+    return jsonify({"events": [e.to_dict() for e in events]}), 200
+
+
 @events_bp.route("/<int:event_id>/approve", methods=["PATCH"])
 @jwt_required()
 def approve_event(event_id):
@@ -242,10 +290,9 @@ def validate_event_data(data):
         except ValueError:
             errors["event_date"] = "Use format: YYYY-MM-DDTHH:MM:SS"
 
-    valid_names = {"Early Bird", "MVP", "Regular"}
     for i, tt in enumerate(data.get("ticket_types", [])):
-        if tt.get("name") not in valid_names:
-            errors[f"ticket_type_{i}_name"] = "Name must be: Early Bird, MVP, or Regular."
+        if not tt.get("name") or not tt.get("name").strip():
+            errors[f"ticket_type_{i}_name"] = "Ticket name is required."
         if not isinstance(tt.get("price"), (int, float)) or tt["price"] < 0:
             errors[f"ticket_type_{i}_price"] = "Price must be non-negative."
         if not isinstance(tt.get("quantity"), int) or tt["quantity"] < 1:
