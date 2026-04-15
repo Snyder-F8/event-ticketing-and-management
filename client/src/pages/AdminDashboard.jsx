@@ -142,6 +142,8 @@ export default function AdminDashboard() {
       }
     };
 
+    // fetchPendingOrganizers removed
+
     fetchUsers();
     fetchEvents();
   }, []);
@@ -164,6 +166,8 @@ export default function AdminDashboard() {
       alert("Failed to update event status.");
     }
   };
+
+  // handleOrganizerApproval removed
 
   const handleLogout = () => {
     dispatch(logout());
@@ -345,6 +349,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* Organizer Approvals Tab removed */}
 
           {activeTab === "Events Approvals" && (
             <div className="animate-fade-in shadow-card rounded-2xl border border-blue-20 bg-white overflow-hidden">

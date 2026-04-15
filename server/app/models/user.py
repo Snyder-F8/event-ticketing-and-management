@@ -20,6 +20,8 @@ class User(BaseModel):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id', ondelete='SET NULL'))
     is_verified = db.Column(db.Boolean, default=False)
     verification_token = db.Column(db.String(255))
+    reset_password_token = db.Column(db.String(255))
+    reset_password_expires = db.Column(db.DateTime)
 
     # Indexes
     __table_args__ = (
