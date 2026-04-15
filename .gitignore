@@ -11,3 +11,10 @@ __pycache__/
 
 #Tests
 server/tests/
+.venv
+.pytest_cache
+
+__pycache__
+instance/local.db
+NodeServer
+server/instance/local.db
