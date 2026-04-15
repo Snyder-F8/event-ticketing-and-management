@@ -1,6 +1,5 @@
-// src/pages/AdminDashboard.jsx
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../redux/authSlice";
 
@@ -10,6 +9,11 @@ import {
   FaUserShield,
   FaSignOutAlt,
   FaUsers,
+  FaCheckCircle,
+  FaStopCircle,
+  FaChartLine,
+  FaTicketAlt,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 
 import { Line, Bar } from "react-chartjs-2";
@@ -48,7 +52,7 @@ export default function AdminDashboard() {
           totalUsers: res.data.total || 0,
         }));
       } catch (err) {
-        console.error("Users error:", err);
+        console.error(err);
       }
     };
 
@@ -67,7 +71,7 @@ export default function AdminDashboard() {
           pendingApprovals: pending,
         }));
       } catch (err) {
-        console.error("Events error:", err);
+        console.error(err);
       }
     };
 
@@ -131,6 +135,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
       <aside className="w-64 bg-blue-900 text-white flex flex-col">
         <div className="p-5 flex items-center gap-3">
           <img src={logo} alt="logo" className="h-10 w-10 rounded-full" />
@@ -157,6 +162,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
+      {/* Main */}
       <main className="flex-1 p-6 overflow-auto">
         <h1 className="text-2xl font-bold mb-6">{activeTab}</h1>
 

@@ -35,7 +35,7 @@ export default function Signup() {
 
       navigate("/verify");
     } catch (err) {
-      setError(err.response?.data?.message || "Signup failed");
+      setError(err.response?.data?.error || "Signup failed");
     } finally {
       setLoading(false);
     }

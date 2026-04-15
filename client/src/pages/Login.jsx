@@ -54,7 +54,7 @@ export default function Login() {
       else if (userRole === "user") navigate("/");
       else navigate("/"); // fallback safety
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.error || "Login failed");
     } finally {
       setLoading(false);
     }
