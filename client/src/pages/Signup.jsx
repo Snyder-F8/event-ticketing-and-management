@@ -8,57 +8,160 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("user");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
-      await API.post("/auth/register", { name, email, password, role: "Organizer" });
+      await API.post("/auth/register", {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        role: role || "user",
+      });
+
+      // reset form (good UX)
+      setName("");
+      setEmail("");
+      setPassword("");
+      setRole("user");
+
       navigate("/verify");
     } catch (err) {
       setError(err.response?.data?.message || "Signup failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen grid md:grid-cols-2">
+    <div className="min-h-[calc(100vh-60px)] flex items-center justify-center bg-surface-main px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-card border border-blue-20 p-8 animate-fade-in-up">
 
-      {/* Left */}
-      <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 text-white p-10">
-        <img src={logo} alt="Logo" className="h-20 mb-6 object-contain" />
-        <h1 className="text-4xl font-bold mb-4 text-center">Ticket Vibez</h1>
-        <p className="text-lg text-center max-w-sm opacity-90">
-          Create, manage and sell tickets for your events seamlessly.
-        </p>
-      </div>
+          {/* Header */}
+          <div className="text-center mb-6">
+            <img src={logo} alt="Logo" className="h-14 mx-auto mb-3 object-contain" />
+            <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Start your journey with us
+            </p>
+          </div>
 
-      {/* Right */}
-      <div className="flex items-center justify-center bg-gray-100 px-4">
-        <div className="w-full max-w-md backdrop-blur-lg bg-white/80 shadow-2xl rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-center text-gray-800">Create Account</h2>
-          <p className="text-center text-gray-500 text-sm mb-6">Start your journey with us</p>
+          {/* Error */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-sm text-center mb-4">
+              {error}
+            </div>
+          )}
 
-          {error && <p className="bg-red-100 text-red-600 p-2 rounded mb-4 text-center">{error}</p>}
-
+          {/* Form */}
           <form onSubmit={handleSignup} className="space-y-4">
-            <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full border px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500" required />
-            <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full border px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500" required />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full border px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500" required />
 
-            <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200 shadow-md hover:shadow-lg">
-              Sign Up
+            {/* Name */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="john@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">
+                I am a
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole("user")}
+                  className={`py-3 rounded-xl text-sm font-medium border transition ${
+                    role === "user"
+                      ? "bg-blue-100 border-blue-500 text-blue-600"
+                      : "bg-white text-gray-500"
+                  }`}
+                >
+                  🎫 Attendee
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRole("organizer")}
+                  className={`py-3 rounded-xl text-sm font-medium border transition ${
+                    role === "organizer"
+                      ? "bg-green-100 border-green-500 text-green-600"
+                      : "bg-white text-gray-500"
+                  }`}
+                >
+                  🎯 Organizer
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center"
+            >
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 
-          <p className="text-center text-sm mt-6 text-gray-500">
+          {/* Footer */}
+          <p className="text-center text-sm text-gray-500 mt-6">
             Already have an account?{" "}
-            <Link to="/login" className="text-blue-600 font-medium hover:underline">Login</Link>
+            <Link
+              to="/login"
+              className="text-blue-600 font-medium hover:underline"
+            >
+              Sign In
+            </Link>
           </p>
         </div>
       </div>

@@ -4,23 +4,19 @@ dist/
 
 # Python
 venv/
+.venv/
 __pycache__/
+.pytest_cache/
 
 # Env files
 .env
 
-#Tests
+# Tests
 server/tests/
-.venv
-.pytest_cache
 
-<<<<<<< HEAD
-NodeServer
-=======
-__pycache__
+# Database / local files
 instance/local.db
-
-NodeServer
-
 server/instance/local.db
->>>>>>> develop
+
+# Project folders
+NodeServer/

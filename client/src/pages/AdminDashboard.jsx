@@ -1,249 +1,257 @@
 // src/pages/AdminDashboard.jsx
 import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { logout } from "../redux/authSlice";
+
 import {
   FaHome,
   FaCalendarAlt,
   FaUserShield,
   FaSignOutAlt,
+  FaUsers,
 } from "react-icons/fa";
+
 import { Line, Bar } from "react-chartjs-2";
 import "chart.js/auto";
+import { Chart } from "chart.js";
+
 import logo from "../assets/logo.png";
 import API from "../services/api";
 
-const sidebarLinks = [
-  { name: "Home", icon: <FaHome /> },
-  { name: "Events", icon: <FaCalendarAlt /> },
-  { name: "Admin", icon: <FaUserShield /> },
-];
-
-const metrics = [
-  { title: "Total Events", value: 24 },
-  { title: "Pending Approvals", value: 5 },
-  { title: "Tickets Sold", value: 1200 },
-  { title: "Total Users", value: 450 },
-];
-
-const eventsData = [
-  {
-    event: "Tech Conference",
-    date: "2026-04-10",
-    location: "Nairobi",
-    status: "Pending",
-  },
-  {
-    event: "Music Fest",
-    date: "2026-05-01",
-    location: "Mombasa",
-    status: "Approved",
-  },
-  {
-    event: "Art Expo",
-    date: "2026-04-20",
-    location: "Nakuru",
-    status: "Pending",
-  },
-];
-
-const revenueData = {
-  labels: ["Jan", "Feb", "Mar", "Apr", "May"],
-  datasets: [
-    {
-      label: "Revenue ($)",
-      data: [1200, 1900, 3000, 5000, 4000],
-      backgroundColor: "rgba(59, 130, 246, 0.5)",
-      borderColor: "rgba(59, 130, 246, 1)",
-      borderWidth: 2,
-    },
-  ],
-};
-
-const ticketsData = {
-  labels: ["Tech", "Music", "Art", "Sports", "Education"],
-  datasets: [
-    {
-      label: "Tickets Sold",
-      data: [200, 400, 150, 300, 150],
-      backgroundColor: [
-        "#3b82f6",
-        "#10b981",
-        "#f59e0b",
-        "#ef4444",
-        "#8b5cf6",
-      ],
-    },
-  ],
-};
+Chart.defaults.font.family = "Outfit, sans-serif";
+Chart.defaults.color = "#6B7280";
 
 export default function AdminDashboard() {
-  const [users, setUsers] = useState([]);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  // Fetch users
+  const [users, setUsers] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [activeTab, setActiveTab] = useState("Dashboard");
+
+  const [dashboardData, setDashboardData] = useState({
+    totalEvents: 0,
+    pendingApprovals: 0,
+    ticketsSold: 1200,
+    totalRevenue: 45000,
+    totalUsers: 0,
+  });
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await API.get("/users");
-        setUsers(res.data);
+        const res = await API.get("/auth/users");
+        setUsers(res.data.users || []);
+        setDashboardData((prev) => ({
+          ...prev,
+          totalUsers: res.data.total || 0,
+        }));
       } catch (err) {
-        console.error("Failed to fetch users", err);
+        console.error("Users error:", err);
+      }
+    };
+
+    const fetchEvents = async () => {
+      try {
+        const res = await API.get("/api/events/all");
+        const data = res.data.events || [];
+
+        setEvents(data);
+
+        const pending = data.filter((e) => e.status === "pending").length;
+
+        setDashboardData((prev) => ({
+          ...prev,
+          totalEvents: data.length,
+          pendingApprovals: pending,
+        }));
+      } catch (err) {
+        console.error("Events error:", err);
       }
     };
 
     fetchUsers();
+    fetchEvents();
   }, []);
 
+  const handleStatusUpdate = async (id, action) => {
+    try {
+      const res = await API.patch(`/api/events/${id}/approve`, { action });
+
+      setEvents((prev) =>
+        prev.map((e) => (e.id === id || e._id === id ? res.data.event : e))
+      );
+
+      setDashboardData((prev) => ({
+        ...prev,
+        pendingApprovals: Math.max(prev.pendingApprovals - 1, 0),
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/login");
+  };
+
+  const revenueData = {
+    labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+    datasets: [
+      {
+        label: "Revenue",
+        data: [12000, 19000, 15000, 30000, 25000],
+        borderColor: "#4C8CF7",
+        backgroundColor: "rgba(76,140,247,0.2)",
+        tension: 0.4,
+        fill: true,
+      },
+    ],
+  };
+
+  const ticketsData = {
+    labels: ["Music", "Tech", "Sports", "Art"],
+    datasets: [
+      {
+        label: "Tickets",
+        data: [450, 300, 150, 200],
+        backgroundColor: ["#4C8CF7", "#10b981", "#f59e0b", "#ef4444"],
+      },
+    ],
+  };
+
+  const sidebarLinks = [
+    { name: "Dashboard", icon: <FaHome /> },
+    { name: "Events", icon: <FaCalendarAlt /> },
+    { name: "Users", icon: <FaUsers /> },
+    { name: "Settings", icon: <FaUserShield /> },
+  ];
+
   return (
-    <div className="flex h-screen font-sans">
-      {/* Sidebar */}
-      <aside className="bg-gradient-to-b from-blue-900 to-blue-800 text-white w-64 flex flex-col shadow-xl">
-        
-        {/* Logo + Name */}
-        <div className="p-6 flex items-center space-x-3">
-          <img
-            src={logo}
-            alt="Logo"
-            className="h-12 w-12 object-contain rounded-full"
-          />
-          <span className="text-lg font-bold">Ticket Vibez</span>
+    <div className="flex h-screen bg-gray-100">
+      <aside className="w-64 bg-blue-900 text-white flex flex-col">
+        <div className="p-5 flex items-center gap-3">
+          <img src={logo} alt="logo" className="h-10 w-10 rounded-full" />
+          <span className="font-bold">Ticket Vibez</span>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1">
           {sidebarLinks.map((link) => (
             <div
               key={link.name}
-              className="flex items-center p-4 hover:bg-blue-700/80 rounded-lg mx-2 cursor-pointer transition-all duration-200"
+              onClick={() => setActiveTab(link.name)}
+              className="p-4 hover:bg-blue-700 cursor-pointer flex gap-2"
             >
-              <span className="mr-3">{link.icon}</span>
-              {link.name}
+              {link.icon} {link.name}
             </div>
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="p-4 flex items-center hover:bg-blue-700/80 rounded-lg mx-2 cursor-pointer transition-all duration-200">
-          <FaSignOutAlt className="mr-3" />
-          Logout
+        <div
+          onClick={handleLogout}
+          className="p-4 hover:bg-red-600 cursor-pointer flex gap-2"
+        >
+          <FaSignOutAlt /> Logout
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 bg-gray-100 p-6 overflow-auto">
-        
-        {/* Topbar */}
-        <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Admin Dashboard
-          </h1>
+      <main className="flex-1 p-6 overflow-auto">
+        <h1 className="text-2xl font-bold mb-6">{activeTab}</h1>
 
-          <div className="flex items-center space-x-3">
-            <img
-              src={logo}
-              alt="Logo"
-              className="h-16 w-16 object-contain rounded-full border shadow-sm"
-            />
-            <span className="font-semibold text-gray-700">Admin</span>
-          </div>
-        </div>
-
-        {/* Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          {metrics.map((metric) => (
-            <div
-              key={metric.title}
-              className="bg-white rounded-xl shadow-sm hover:shadow-lg p-5 transition-all duration-300 border border-gray-100"
-            >
-              <p className="text-gray-500">{metric.title}</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {metric.value}
-              </p>
+        {activeTab === "Dashboard" && (
+          <>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <Card title="Events" value={dashboardData.totalEvents} />
+              <Card title="Pending" value={dashboardData.pendingApprovals} />
+              <Card title="Tickets" value={dashboardData.ticketsSold} />
+              <Card title="Revenue" value={dashboardData.totalRevenue} />
             </div>
-          ))}
-        </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-            <h2 className="font-bold mb-2">Revenue Overview</h2>
-            <Line data={revenueData} />
-          </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="bg-white p-4 rounded shadow">
+                <Line data={revenueData} />
+              </div>
+              <div className="bg-white p-4 rounded shadow">
+                <Bar data={ticketsData} />
+              </div>
+            </div>
+          </>
+        )}
 
-          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-            <h2 className="font-bold mb-2">Tickets Sold</h2>
-            <Bar data={ticketsData} />
-          </div>
-        </div>
+        {activeTab === "Events" && (
+          <div className="bg-white p-4 rounded shadow">
+            <h2 className="font-bold mb-4">Event Approvals</h2>
 
-        {/* Events */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-          <h2 className="font-bold mb-4">Event Approval Queue</h2>
-
-          <table className="min-w-full text-left text-sm text-gray-600">
-            <thead className="border-b text-gray-500">
-              <tr>
-                <th className="p-2">Event</th>
-                <th className="p-2">Date</th>
-                <th className="p-2">Location</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {eventsData.map((event) => (
-                <tr key={event.event} className="border-b hover:bg-gray-50">
-                  <td className="p-2">{event.event}</td>
-                  <td className="p-2">{event.date}</td>
-                  <td className="p-2">{event.location}</td>
-                  <td className="p-2">{event.status}</td>
-                  <td className="p-2 space-x-2">
-                    <button className="bg-blue-400 text-white px-3 py-1 rounded hover:bg-blue-500 transition">
-                      Approve
-                    </button>
-                    <button className="bg-blue-900 text-white px-3 py-1 rounded hover:bg-blue-800 transition">
-                      Reject
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Users */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 mt-6">
-          <h2 className="font-bold mb-4">Users</h2>
-
-          <table className="min-w-full text-left text-sm text-gray-600">
-            <thead className="border-b text-gray-500">
-              <tr>
-                <th className="p-2">Name</th>
-                <th className="p-2">Email</th>
-                <th className="p-2">Role</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {users.length > 0 ? (
-                users.map((user) => (
-                  <tr key={user._id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">{user.name}</td>
-                    <td className="p-2">{user.email}</td>
-                    <td className="p-2 capitalize">{user.role}</td>
-                  </tr>
-                ))
-              ) : (
+            <table className="w-full text-sm">
+              <thead>
                 <tr>
-                  <td colSpan="3" className="p-2 text-center">
-                    No users found
-                  </td>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
 
+              <tbody>
+                {events.map((e) => (
+                  <tr key={e.id || e._id}>
+                    <td>{e.title}</td>
+                    <td>{e.status}</td>
+                    <td>
+                      {e.status === "pending" && (
+                        <>
+                          <button onClick={() => handleStatusUpdate(e.id || e._id, "approve")}>
+                            ✔
+                          </button>
+                          <button onClick={() => handleStatusUpdate(e.id || e._id, "reject")}>
+                            ✖
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === "Users" && (
+          <div className="bg-white p-4 rounded shadow">
+            <h2 className="font-bold mb-4">Users</h2>
+
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id || u._id}>
+                    <td>{u.name}</td>
+                    <td>{u.email}</td>
+                    <td>{u.role}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
+    </div>
+  );
+}
+
+function Card({ title, value }) {
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <p className="text-gray-500">{title}</p>
+      <h2 className="text-xl font-bold">{value}</h2>
     </div>
   );
 }

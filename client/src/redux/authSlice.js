@@ -1,22 +1,51 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// Safe JSON parse helper
+const safeParse = (value) => {
+  try {
+    return value ? JSON.parse(value) : null;
+  } catch (err) {
+    return null;
+  }
+};
+
+// Restore from localStorage safely
+const storedUser = safeParse(localStorage.getItem("user"));
+const storedToken = localStorage.getItem("token");
+
+const initialState = {
+  user: storedUser,
+  token: storedToken || null,
+};
+
 const authSlice = createSlice({
   name: "auth",
-  initialState: {
-    user: null,
-    token: localStorage.getItem("token"),
-  },
+  initialState,
   reducers: {
     loginSuccess: (state, action) => {
-      state.token = action.payload.token;
-      localStorage.setItem("token", action.payload.token);
+      const { token, user } = action.payload;
+
+      state.token = token;
+      state.user = user;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
     },
+
+    setUser: (state, action) => {
+      state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
+    },
+
     logout: (state) => {
       state.token = null;
+      state.user = null;
+
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
     },
   },
 });
 
-export const { loginSuccess, logout } = authSlice.actions;
+export const { loginSuccess, setUser, logout } = authSlice.actions;
 export default authSlice.reducer;

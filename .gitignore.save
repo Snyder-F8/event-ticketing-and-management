@@ -1,0 +1,26 @@
+# Node
+node_modules/
+dist/
+
+# Python
+venv/
+__pycache__/
+
+# Env files
+.env
+
+#Tests
+server/tests/
+.venv
+.pytest_cache
+
+<<<<<<< HEAD
+NodeServer
+=======
+__pycache__
+instance/local.db
+
+NodeServer
+
+server/instance/local.db
+>>>>>>> develop
