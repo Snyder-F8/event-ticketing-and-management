@@ -11,9 +11,9 @@ class Config:
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "jwt-dev-secret-change-in-production")
     DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 
-    # Resend
-    RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-    RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+    # SendGrid
+    SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+    SENDGRID_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL", "noreply@eventticketing.com")
 
     # M-Pesa
     MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY")
@@ -36,7 +36,7 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     JWT_SECRET_KEY = "test-jwt-secret"
     SECRET_KEY = "test-secret"
-    RESEND_API_KEY = "test-key"
+    SENDGRID_API_KEY = "test-key"
     MPESA_CONSUMER_KEY = "test-key"
     MPESA_CONSUMER_SECRET = "test-secret"
     MPESA_SHORTCODE = "174379"

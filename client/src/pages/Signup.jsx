@@ -21,7 +21,7 @@ export default function Signup() {
       await API.post("/auth/register", { name, email, password, role });
       navigate("/verify");
     } catch (err) {
-      setError(err.response?.data?.error || "Signup failed");
+      setError(err.response?.data?.message || "Signup failed");
     } finally {
       setLoading(false);
     }
