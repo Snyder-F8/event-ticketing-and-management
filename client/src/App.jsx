@@ -16,7 +16,6 @@ import Signup from "./pages/Signup.jsx";
 import Verify from "./pages/Verify.jsx";
 import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
-import ResetPassword from "./pages/ResetPassword.jsx";
 
 // Pages — Dashboards
 import AdminDashboard from "./pages/AdminDashboard.jsx";
@@ -53,7 +52,6 @@ function AppLayout() {
           <Route path="/verify" element={<Verify />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Dashboards (own layout with sidebar) */}
           <Route path="/admin" element={<AdminDashboard />} />
