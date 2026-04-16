@@ -1,4 +1,4 @@
 .env
 __pycache__
 instance/local.db
-app/static/uploads/
+app/static/uploads/instance/local.db
