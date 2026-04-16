@@ -1,8 +1,9 @@
 // src/services/api.js
 import axios from "axios";
 
-const API = axios.create({
-  baseURL: "http://localhost:5000",
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000', // fallback for local dev
+  withCredentials: true,   // keep this if you use cookies/auth
 });
 
 API.interceptors.request.use((req) => {
