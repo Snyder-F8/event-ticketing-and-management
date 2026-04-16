@@ -5,11 +5,20 @@ load_dotenv()
 
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///local.db")
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        raise ValueError("DATABASE_URL is not set")
+
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "jwt-dev-secret-change-in-production")
-    DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+
+    DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
     # Resend
     RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
@@ -34,11 +43,3 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    JWT_SECRET_KEY = "test-jwt-secret"
-    SECRET_KEY = "test-secret"
-    RESEND_API_KEY = "test-key"
-    MPESA_CONSUMER_KEY = "test-key"
-    MPESA_CONSUMER_SECRET = "test-secret"
-    MPESA_SHORTCODE = "174379"
-    MPESA_PASSKEY = "test-passkey"
-    MPESA_CALLBACK_URL = "https://test.example.com/callback"
