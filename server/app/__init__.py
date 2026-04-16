@@ -5,6 +5,7 @@ from .extensions import db, migrate, jwt, cors
 
 def create_app(config_class=None):
     app = Flask(__name__)
+    
     if config_class is None:
         app.config.from_object(Config)
     else:
@@ -14,7 +15,20 @@ def create_app(config_class=None):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    cors.init_app(app)
+    
+    # Initialize CORS with specific allowed origins (important for Netlify + local dev)
+    cors.init_app(
+        app,
+        origins=[
+            "https://ticketvibez.netlify.app",      # ← Your production frontend
+            "http://localhost:5173",                # Vite default dev server
+            "http://127.0.0.1:5173",                # Alternative localhost
+            # Add more if needed (e.g. your custom domain later)
+        ],
+        supports_credentials=True,                  # Important if using JWT cookies or auth headers
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"]
+    )
 
     # Import models so Alembic detects them
     with app.app_context():
