@@ -1,11 +1,18 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
+
 from app.services.auth_service import (
-    register_user, login_user, verify_email, resend_verification, 
-    get_all_users, request_password_reset, reset_password
+    register_user,
+    login_user,
+    verify_email,
+    resend_verification,
+    get_all_users,
+    request_password_reset,
+    reset_password
 )
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
 
 # ====================== REGISTER ======================
 @auth_bp.route('/register', methods=['POST'])
@@ -15,23 +22,20 @@ def register():
     name = data.get('name')
     email = data.get('email')
     password = data.get('password')
-    role_name = data.get('role')   # Frontend should send "Attendee" or "Organizer"
+    role_name = data.get('role')   # "Attendee" or "Organizer" from frontend
 
-    # Basic validation
     if not all([name, email, password]):
         return jsonify({"error": "Name, email, and password are required."}), 400
 
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters long."}), 400
 
-    # Call the service (role defaults to Attendee if not provided)
     result, status_code = register_user(
         name=name,
         email=email,
         password=password,
         role_name=role_name
     )
-
     return jsonify(result), status_code
 
 
@@ -70,10 +74,14 @@ def resend_verification_route():
     return jsonify(result), status_code
 
 
-# ====================== GET ALL USERS (Admin only - add protection later) ======================
+# ====================== GET ALL USERS (Admin only) ======================
 @auth_bp.route('/users', methods=['GET'])
+@jwt_required()
 def get_users():
-    # TODO: Add @admin_required decorator here later
+    jwt_data = get_jwt()
+    if jwt_data.get("role") != "Admin":
+        return jsonify({"error": "Admin access required."}), 403
+
     result, status_code = get_all_users()
     return jsonify(result), status_code
 
