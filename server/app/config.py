@@ -36,8 +36,18 @@ class Config:
     }
 
     DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
-    # ==================== RESEND EMAIL CONFIG ====================
+    # ==================== EMAIL CONFIG ====================
+    # Email Configuration (SMTP)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True").lower() == "true"
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")
+
+    # Resend (Keep for now as fallback or until fully removed)
     RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 
     # Safe default for testing (works without domain verification)
