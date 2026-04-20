@@ -155,6 +155,15 @@ def send_login_notification_email(user):
 
 def send_ticket_confirmation_email(user, ticket, event):
     subject = f"🎟️ Your Ticket for {event.title} — Confirmed!"
+    
+    # Safe date formatting
+    event_date_str = "TBA"
+    if hasattr(event, 'event_date') and event.event_date:
+        if isinstance(event.event_date, datetime):
+            event_date_str = event.event_date.strftime("%B %d, %Y at %I:%M %p")
+        else:
+            event_date_str = str(event.event_date)
+            
     html_content = f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e0e0e0;border-radius:8px;">
         <h2 style="color:#4F46E5;">Ticket Confirmed! 🎉</h2>
@@ -162,12 +171,12 @@ def send_ticket_confirmation_email(user, ticket, event):
         <p>Your ticket purchase was successful. Here are your details:</p>
         <div style="background:#f9fafb;padding:16px;border-radius:6px;margin:16px 0;">
             <p><strong>Event:</strong> {event.title}</p>
-            <p><strong>Date:</strong> {event.event_date.strftime("%B %d, %Y at %I:%M %p") if getattr(event, 'event_date', None) else "TBA"}</p>
+            <p><strong>Date:</strong> {event_date_str}</p>
             <p><strong>Location:</strong> {getattr(event, 'location', "TBA")}</p>
             <p><strong>Ticket Code:</strong> <code style="background:#e0e7ff;padding:4px 10px;border-radius:4px;">{ticket.ticket_code}</code></p>
             <p><strong>Ticket Type:</strong> {getattr(ticket.ticket_type, 'name', 'N/A')}</p>
             <p><strong>Quantity:</strong> {ticket.quantity}</p>
-            <p><strong>Amount Paid:</strong> KES {ticket.total_amount:,.2f}</p>
+            <p><strong>Amount Paid:</strong> KES {float(ticket.total_amount):,.2f}</p>
         </div>
         <p>Present your ticket code at the entrance.</p>
         <p style="color:#9ca3af;font-size:12px;">Automated message. Do not reply.</p>
