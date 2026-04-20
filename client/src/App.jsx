@@ -29,37 +29,42 @@ import Footer from "./components/Footer.jsx";
 function AppLayout() {
   const location = useLocation();
 
-  // Only dashboards hide the public navbar/footer (they have their own sidebar)
-  const noLayoutPaths = ["/admin", "/organizer"];
-
-  const hideLayout = noLayoutPaths.some((path) =>
-    location.pathname.startsWith(path)
-  );
+  // safer layout hiding (covers nested routes)
+  const hideLayout =
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/organizer");
 
   return (
     <div className="flex flex-col min-h-screen">
       {!hideLayout && <Header />}
+
       <main className="flex-grow">
         <Routes>
-          {/* Public pages */}
+
+          {/* Public */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/my-tickets" element={<MyTicketsPage />} />
 
-          {/* Auth pages (navbar visible so users can navigate to Home/Events) */}
+          {/* Auth */}
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Dashboards (own layout with sidebar) */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/organizer" element={<OrganizerDashboard />} />
+          {/* Dashboards */}
+          <Route path="/admin/*" element={<AdminDashboard />} />
+          <Route path="/organizer/*" element={<OrganizerDashboard />} />
+
+          {/* 404 fallback */}
+          <Route path="*" element={<div className="p-10 text-center text-gray-500">Page not found</div>} />
+
         </Routes>
       </main>
+
       {!hideLayout && <Footer />}
     </div>
   );

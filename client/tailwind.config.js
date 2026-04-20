@@ -5,16 +5,19 @@ export default {
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
+
   theme: {
     extend: {
       colors: {
         primary: {
           DEFAULT: "#4C8CF7",
           hover: "#3C81F6",
+          active: "#365FCC",
           dark: "#0B62F3",
           light: "#6DA1F8",
           lighter: "#9EC1FB",
         },
+
         blue: {
           950: "#010C1D",
           900: "#03193E",
@@ -44,38 +47,47 @@ export default {
           10: "#E0EBFE",
           5: "#F0F6FE",
         },
+
         surface: {
           main: "#F0F6FE",
           section: "#E0EBFE",
           card: "#FFFFFF",
           border: "#CFE0FD",
         },
-        heading: "#010C1D",
-        body: "#03193E",
-        "text-secondary": "#04204F",
-        muted: "#6B7280",
+
+        text: {
+          heading: "#010C1D",
+          body: "#03193E",
+          secondary: "#04204F",
+          muted: "#6B7280",
+        },
       },
+
       fontFamily: {
         inter: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         outfit: ['Outfit', 'system-ui', '-apple-system', 'sans-serif'],
       },
+
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-out forwards',
-        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
-        'slide-right': 'slideInRight 0.5s ease-out forwards',
-        'pulse-glow': 'pulseGlow 3s ease-in-out infinite',
-        'float': 'float 4s ease-in-out infinite',
-        'shimmer': 'shimmer 1.5s ease-in-out infinite',
-        'scale-in': 'scaleIn 0.4s ease-out forwards',
-        'gradient': 'gradientShift 6s ease infinite',
+        "fade-in": "fadeIn 0.5s ease-out forwards",
+        "fade-in-up": "fadeInUp 0.6s ease-out forwards",
+        "slide-right": "slideInRight 0.5s ease-out forwards",
+        "pulse-glow": "pulseGlow 3s ease-in-out infinite",
+        "float": "float 4s ease-in-out infinite",
+        "shimmer": "shimmer 1.5s ease-in-out infinite",
+        "scale-in": "scaleIn 0.4s ease-out forwards",
+        "gradient": "gradientShift 6s ease infinite",
       },
+
       boxShadow: {
-        'glow': '0 0 20px rgba(76, 140, 247, 0.15)',
-        'glow-md': '0 0 30px rgba(76, 140, 247, 0.2)',
-        'card': '0 1px 3px rgba(1, 12, 29, 0.06), 0 1px 2px rgba(1, 12, 29, 0.04)',
-        'card-hover': '0 8px 30px rgba(1, 12, 29, 0.1)',
+        glow: "0 0 20px rgba(76, 140, 247, 0.15)",
+        "glow-md": "0 0 30px rgba(76, 140, 247, 0.2)",
+        card:
+          "0 1px 3px rgba(1, 12, 29, 0.06), 0 1px 2px rgba(1, 12, 29, 0.04)",
+        "card-hover": "0 8px 30px rgba(1, 12, 29, 0.1)",
       },
     },
   },
+
   plugins: [],
 };
