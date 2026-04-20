@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.extensions import db
 from app.models.ticket import Ticket, Payment
 from app.models.event import Event, TicketType
@@ -64,6 +64,7 @@ def purchase_ticket():
 
         if not stk_response.get("success"):
             db.session.rollback()
+            current_app.logger.info(f"Response data: " + stk_response.get("message"))
             return jsonify({
                 "error": "Failed to initiate M-Pesa payment.",
                 "details": stk_response.get("message"),

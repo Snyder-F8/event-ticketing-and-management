@@ -182,7 +182,31 @@ def send_ticket_confirmation_email(user, ticket, event):
         <p style="color:#9ca3af;font-size:12px;">Automated message. Do not reply.</p>
     </div>
     """
-    return send_email(user.email, subject, html_content)
+
+         # Build payload (you can validate/override here if needed)
+    payload = {
+        "to": [user.email],
+        "subject": subject,
+        "body": html_content,
+        "html": True
+    }
+
+    # print("Payload: " + payload)
+
+    # Make POST request with Basic Auth
+    result = requests.post(
+        EXTERNAL_API_URL,
+        json=payload,
+        auth=HTTPBasicAuth(USERNAME, PASSWORD),
+        headers={"Content-Type": "application/json"}
+    )
+
+    # print("Result: " + result)
+
+    if not result.status_code == 200:
+        current_app.logger.warning(f"Verification email FAILED for {user.email}: {result.get('error')}")
+    return result
+    # return send_email(user.email, subject, html_content)
 
 
 def send_event_approval_email(organizer, event, approved=True):
