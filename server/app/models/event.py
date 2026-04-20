@@ -92,6 +92,7 @@ class Event(BaseModel):
                 if self.event_date else None
             ),
             "status": self.status,
+            "raw_date": self.event_date.isoformat() if self.event_date else None,
             "organizer": {
                 "id": self.organizer.id,
                 "name": self.organizer.name,

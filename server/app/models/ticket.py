@@ -64,6 +64,10 @@ class Ticket(BaseModel):
             "quantity": self.quantity,
             "total_amount": float(self.total_amount),
             "status": self.status,
+            "event_title": self.event.title if self.event else "Unknown Event",
+            "ticket_type_name": self.ticket_type.name if self.ticket_type else "General",
+            "user_name": self.user.name if self.user else "Anonymous",
+            "user_email": self.user.email if self.user else "N/A",
             "payment": self.payment.to_dict() if self.payment else None,
             "purchased_at": (
                 self.created_at.strftime("%B %d, %Y at %I:%M %p")

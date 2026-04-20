@@ -195,6 +195,13 @@ def update_event(event_id):
             if category:
                 event.categories.append(category)
 
+    if "image_url" in data and data["image_url"].strip():
+        # Update or add image
+        if event.images:
+            event.images[0].image_url = data["image_url"].strip()
+        else:
+            db.session.add(Image(event_id=event.id, image_url=data["image_url"].strip()))
+
     if role == "admin" and "status" in data:
         if data["status"] not in ("approved", "rejected", "pending"):
             return jsonify({"error": "Invalid status."}), 422
