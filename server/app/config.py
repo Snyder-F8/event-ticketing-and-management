@@ -48,16 +48,21 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")
 
     # Resend (Keep for now as fallback or until fully removed)
-    RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+    # RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 
-    # Safe default for testing (works without domain verification)
-    RESEND_FROM_EMAIL = os.environ.get(
-        "RESEND_FROM_EMAIL", 
-        "TicketVibez <onboarding@resend.dev>"
-    )
+    # # Safe default for testing (works without domain verification)
+    # RESEND_FROM_EMAIL = os.environ.get(
+    #     "RESEND_FROM_EMAIL", 
+    #     "TicketVibez <onboarding@resend.dev>"
+    # )
 
     # Frontend URL - VERY IMPORTANT for verification & reset links
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    BACKEND_URL = os.environ.get("VITE_API_BASE_URL", "http://localhost:5000")
+
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    BACKEND_URL = os.environ.get("VITE_API_BASE_URL", "http://localhost:5000")
+
 
     # M-Pesa
     MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY")
@@ -66,13 +71,13 @@ class Config:
     MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY")
     MPESA_CALLBACK_URL = os.environ.get("MPESA_CALLBACK_URL")
 
-    # Optional: Warn if Resend is not fully configured
-    @classmethod
-    def check_email_config(cls):
-        if not cls.RESEND_API_KEY:
-            print("WARNING: RESEND_API_KEY is not set. Emails will not be sent.")
-        if "onboarding@resend.dev" in cls.RESEND_FROM_EMAIL and not os.environ.get("RESEND_FROM_EMAIL"):
-            print("Using Resend default sender (onboarding@resend.dev). Good for testing.")
+    # # Optional: Warn if Resend is not fully configured
+    # @classmethod
+    # def check_email_config(cls):
+    #     if not cls.RESEND_API_KEY:
+    #         print("WARNING: RESEND_API_KEY is not set. Emails will not be sent.")
+    #     if "onboarding@resend.dev" in cls.RESEND_FROM_EMAIL and not os.environ.get("RESEND_FROM_EMAIL"):
+    #         print("Using Resend default sender (onboarding@resend.dev). Good for testing.")
 
 
 class DevelopmentConfig(Config):

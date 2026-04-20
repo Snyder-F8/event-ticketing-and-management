@@ -15,6 +15,7 @@ from app.utils.email import (
 # ====================== REGISTER ======================
 def register_user(name: str, email: str, password: str, role_name: str = "Attendee"):
     # Duplicate check
+    print("Test logger register")
     if User.query.filter_by(email=email).first():
         return {"error": "A user with this email already exists."}, 409
 
@@ -49,7 +50,9 @@ def register_user(name: str, email: str, password: str, role_name: str = "Attend
     db.session.commit()
 
     # Send verification email
+    print("Calling send verification email")
     send_verification_email(user, verification_token)
+    print("End of send verification email")
 
     return {
         "message": "Registration successful. Please verify your email.",

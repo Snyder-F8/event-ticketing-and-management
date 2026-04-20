@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
+import logging
 
 from app.services.auth_service import (
     register_user,
@@ -12,6 +13,9 @@ from app.services.auth_service import (
 )
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 # ====================== REGISTER ======================
@@ -30,6 +34,8 @@ def register():
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters long."}), 400
 
+    logger.info("This is properly logged and visible in most environments")
+    print("I hope this shows up in the logs")
     result, status_code = register_user(
         name=name,
         email=email,
