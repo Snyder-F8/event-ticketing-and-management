@@ -1,7 +1,7 @@
 // src/pages/AdminDashboard.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/authSlice";
 import {
   FaHome,
@@ -32,6 +32,8 @@ Chart.defaults.scale.grid.color = "rgba(76, 140, 247, 0.05)";
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user, token } = useSelector((state) => state.auth);
+  
   const [users, setUsers] = useState([]);
   const [dashboardData, setDashboardData] = useState({
     totalEvents: 24,
@@ -45,6 +47,9 @@ export default function AdminDashboard() {
 
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+
+  const [tickets, setTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
 
   const revenueData = {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
@@ -104,49 +109,66 @@ export default function AdminDashboard() {
     },
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await API.get("/auth/users");
+      setUsers(res.data.users || []);
+      setDashboardData(prev => ({ ...prev, totalUsers: res.data.total }));
+    } catch (err) {
+      console.error("Failed to fetch users", err);
+    }
+  };
+
+  const fetchEvents = async () => {
+    setLoadingEvents(true);
+    try {
+      const res = await API.get("/api/events/all");
+      const fetchedEvents = res.data.events || [];
+      setEvents(fetchedEvents);
+      const pendingCount = fetchedEvents.filter(e => e.status === "pending").length;
+      setDashboardData(prev => ({ 
+        ...prev, 
+        totalEvents: fetchedEvents.length,
+        pendingApprovals: pendingCount
+      }));
+    } catch (err) {
+      console.error("Failed to fetch events:", err.response?.data || err);
+      if (err.response?.status === 401) navigate("/login");
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const fetchTickets = async () => {
+    setLoadingTickets(true);
+    try {
+      const res = await API.get("/api/tickets/manage/all");
+      const fetchedTickets = res.data.tickets || [];
+      setTickets(fetchedTickets);
+      const confirmedTickets = fetchedTickets.filter(t => t.status === "confirmed");
+      const revenue = confirmedTickets.reduce((sum, t) => sum + t.total_amount, 0);
+      setDashboardData(prev => ({
+        ...prev,
+        ticketsSold: confirmedTickets.length,
+        totalRevenue: revenue
+      }));
+    } catch (err) {
+      console.error("Failed to fetch tickets:", err);
+      alert("Failed to fetch tickets. Check console or backend logs.");
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await API.get("/auth/users");
-        setUsers(res.data.users || []);
-        setDashboardData(prev => ({ ...prev, totalUsers: res.data.total }));
-      } catch (err) {
-        console.error("Failed to fetch users", err);
-      }
-    };
-
-    const fetchEvents = async () => {
-      setLoadingEvents(true);
-      try {
-        const res = await API.get("/api/events/all");
-        const fetchedEvents = res.data.events || [];
-        setEvents(fetchedEvents);
-        
-        // Update dashboard stats
-        const pendingCount = fetchedEvents.filter(e => e.status === "pending").length;
-        setDashboardData(prev => ({ 
-          ...prev, 
-          totalEvents: fetchedEvents.length,
-          pendingApprovals: pendingCount
-        }));
-      } catch (err) {
-        console.error("Failed to fetch events:", err.response?.data || err);
-        if (err.response?.status === 401) {
-          // Token expired or invalid
-          navigate("/login");
-        } else if (err.response?.status === 403) {
-          alert("Access Denied: You do not have permissions to view this page.");
-        }
-      } finally {
-        setLoadingEvents(false);
-      }
-    };
-
-    // fetchPendingOrganizers removed
-
+    if (!token || user?.role !== "Admin") {
+      navigate("/login");
+      return;
+    }
     fetchUsers();
     fetchEvents();
-  }, []);
+    fetchTickets();
+  }, [token, user]);
 
   const handleStatusUpdate = async (eventId, action) => {
     try {
@@ -155,7 +177,6 @@ export default function AdminDashboard() {
       setEvents(prev => prev.map(e => e.id === eventId ? res.data.event : e));
       // Refresh stats
       setDashboardData(prev => {
-        const isApprove = action === 'approve';
         return {
           ...prev,
           pendingApprovals: Math.max(0, prev.pendingApprovals - 1)
@@ -164,6 +185,19 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error("Update status error:", err);
       alert("Failed to update event status.");
+    }
+  };
+
+  const handleConfirmTicket = async (ticketId) => {
+    try {
+      await API.patch(`/api/tickets/manage/${ticketId}/confirm`);
+      // Update local state
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: "confirmed" } : t));
+      alert("Ticket confirmed successfully.");
+    } catch (err) {
+      console.error("Confirm ticket error:", err);
+      const msg = err.response?.data?.details || err.response?.data?.error || err.message;
+      alert("Failed to confirm ticket: " + msg);
     }
   };
 
@@ -177,6 +211,7 @@ export default function AdminDashboard() {
   const sidebarLinks = [
     { name: "Dashboard", icon: <FaHome /> },
     { name: "Events Approvals", icon: <FaCalendarAlt /> },
+    { name: "Ticket Management", icon: <FaTicketAlt /> },
     { name: "User Management", icon: <FaUsers /> },
     { name: "Global Settings", icon: <FaUserShield /> },
   ];
@@ -267,11 +302,11 @@ export default function AdminDashboard() {
             <div className="h-8 w-px bg-blue-20"></div>
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-heading leading-tight group-hover:text-primary transition-colors">System Admin</p>
-                <p className="text-xs text-muted">admin@ticketvibez.com</p>
+                <p className="text-sm font-bold text-heading leading-tight group-hover:text-primary transition-colors">{user?.name || "System Admin"}</p>
+                <p className="text-xs text-muted">{user?.email || "admin@ticketvibez.com"}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white font-bold shadow-md border-2 border-white">
-                A
+                {user?.name?.[0] || "A"}
               </div>
             </div>
           </div>
@@ -286,6 +321,7 @@ export default function AdminDashboard() {
               <p className="text-muted text-sm mt-1">
                 {activeTab === "Dashboard" && "Monitor your platform's holistic performance."}
                 {activeTab === "Events Approvals" && "Review and moderate pending event requests."}
+                {activeTab === "Ticket Management" && "Monitor and confirm manual payment requests."}
                 {activeTab === "User Management" && "Manage platform users and roles."}
               </p>
             </div>
@@ -321,8 +357,11 @@ export default function AdminDashboard() {
                       <FaTicketAlt />
                     </div>
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">Tickets Sold</p>
+                  <p className="text-gray-500 text-sm font-medium">Confirmed Tickets</p>
                   <p className="text-3xl font-outfit font-bold text-heading mt-1">{dashboardData.ticketsSold.toLocaleString()}</p>
+                  <p className="text-xs text-orange-500 mt-2 font-medium">
+                    {tickets.filter(t => t.status === 'pending').length} pending approval
+                  </p>
                 </div>
 
                 <div className="bg-white rounded-2xl p-6 shadow-card border border-blue-20 group">
@@ -351,6 +390,91 @@ export default function AdminDashboard() {
           )}
 
           {/* Organizer Approvals Tab removed */}
+
+          {activeTab === "Ticket Management" && (
+            <div className="animate-fade-in shadow-card rounded-2xl border border-blue-20 bg-white overflow-hidden">
+                <div className="p-6 border-b border-blue-10 flex justify-between items-center bg-gray-50/50">
+                  <div className="flex items-center gap-3">
+                    <h2 className="font-outfit font-bold text-lg text-heading">Global Ticket Status</h2>
+                    {loadingTickets && <span className="animate-spin text-primary"><FaChartLine size={14} /></span>}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs font-medium bg-blue-100 text-primary-dark px-3 py-1 rounded-full">
+                      {tickets.filter(t => t.status === 'pending').length} Pending Payments
+                    </span>
+                    <button 
+                      onClick={fetchTickets}
+                      className="text-xs text-primary hover:underline font-semibold"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-sm whitespace-nowrap">
+                    <thead className="bg-white border-b border-blue-10">
+                      <tr>
+                        <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Ticket Details</th>
+                        <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Customer</th>
+                        <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Amount</th>
+                        <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Status</th>
+                        <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-blue-5">
+                      {tickets.length > 0 ? (
+                        tickets.map((ticket) => (
+                        <tr key={ticket.id} className="hover:bg-blue-5/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-heading">{ticket.event_title}</div>
+                            <div className="text-xs text-muted mt-0.5">{ticket.ticket_type_name} × {ticket.quantity}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-gray-700">{ticket.user_name}</div>
+                            <div className="text-xs text-muted mt-0.5">{ticket.user_email}</div>
+                          </td>
+                          <td className="px-6 py-4 font-bold text-gray-900">
+                            KES {ticket.total_amount.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+                              ${ticket.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+                                ticket.status === 'cancelled' ? 'bg-red-50 text-red-600 border border-red-100' : 
+                                'bg-orange-50 text-orange-600 border border-orange-100'}
+                            `}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                ticket.status === 'confirmed' ? 'bg-emerald-500' : 
+                                ticket.status === 'cancelled' ? 'bg-red-500' : 
+                                'bg-orange-500'
+                              }`}></span>
+                              {ticket.status ? ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1) : 'Pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {ticket.status === 'pending' && (
+                              <button 
+                                onClick={() => handleConfirmTicket(ticket.id)}
+                                className="px-4 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-600 text-xs font-bold transition-all border border-emerald-200"
+                              >
+                                Confirm Payment
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" className="px-6 py-12 text-center text-muted italic">
+                            No tickets found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+            </div>
+          )}
 
           {activeTab === "Events Approvals" && (
             <div className="animate-fade-in shadow-card rounded-2xl border border-blue-20 bg-white overflow-hidden">
