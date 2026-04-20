@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { FaMapMarkerAlt, FaCalendarAlt } from "react-icons/fa";
+import { getEventImage } from "../utils/imageHelper";
 
 function getLowestPrice(ticketTypes) {
   if (!ticketTypes || ticketTypes.length === 0) return null;
@@ -9,7 +10,7 @@ function getLowestPrice(ticketTypes) {
 }
 
 export default function EventCard({ event, index = 0, featured = false }) {
-  const image = event.images?.[0]?.image_url || "";
+  const image = getEventImage(event.images?.[0]?.image_url);
   const lowestPrice = getLowestPrice(event.ticket_types);
   const category = event.categories?.[0] || "Event";
 
@@ -26,6 +27,7 @@ export default function EventCard({ event, index = 0, featured = false }) {
           src={image}
           alt={event.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          onError={(e) => { e.target.src = DEFAULT_IMAGE; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold bg-primary text-white">

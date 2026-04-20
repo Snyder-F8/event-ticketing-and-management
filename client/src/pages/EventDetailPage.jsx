@@ -7,6 +7,7 @@ import API from "../services/api";
 import { getStubEvent, stubEvents } from "../data/stubEvents";
 import { PageSkeleton } from "../components/LoadingSkeleton";
 import EventCard from "../components/EventCard";
+import { getEventImage, DEFAULT_IMAGE } from "../utils/imageHelper";
 
 function getTicketTypeStyle(name) {
   const n = name?.toLowerCase() || "";
@@ -76,7 +77,7 @@ export default function EventDetailPage() {
     </div>
   );
 
-  const eventImage = event.images?.[0]?.image_url || "";
+  const eventImage = getEventImage(event.images?.[0]?.image_url);
   const total = getTotal();
   const hasSelections = total > 0;
 
@@ -84,7 +85,7 @@ export default function EventDetailPage() {
     <div className="min-h-screen bg-surface-main">
       {/* Hero */}
       <section className="relative h-[300px] md:h-[400px] overflow-hidden" id="event-detail-hero">
-        <img src={eventImage} alt={event.title} className="w-full h-full object-cover" />
+        <img src={eventImage} alt={event.title} className="w-full h-full object-cover" onError={(e) => { e.target.src = DEFAULT_IMAGE; }} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
         <button onClick={() => navigate(-1)} className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 backdrop-blur-sm text-sm text-heading hover:bg-white transition-colors z-10 shadow-sm">
           <FaArrowLeft size={12} /> Back

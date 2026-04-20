@@ -65,6 +65,19 @@ export default function OrganizerDashboard() {
   const [imageType, setImageType] = useState('url'); // 'url' or 'upload'
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
+  const [availableCategories, setAvailableCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await API.get("/api/events/categories");
+        setAvailableCategories(res.data);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -548,13 +561,17 @@ export default function OrganizerDashboard() {
 
                   <div>
                     <label className="block text-[12px] font-bold text-gray-400 mb-1.5 uppercase tracking-wider">Category</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Technology, Music"
-                      className="w-full bg-[#f5f5f7] border border-transparent rounded-[14px] px-4 py-3 text-[15px] font-medium text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                    <select
+                      className="w-full bg-[#f5f5f7] border border-transparent rounded-[14px] px-4 py-3 text-[15px] font-medium text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none appearance-none"
                       value={newEvent.category}
                       onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
-                    />
+                      required
+                    >
+                      <option value="" disabled>Select a category</option>
+                      {availableCategories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="flex-1 flex flex-col">
