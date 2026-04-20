@@ -36,18 +36,33 @@ class Config:
     }
 
     DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
-    # ==================== RESEND EMAIL CONFIG ====================
-    RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+    # ==================== EMAIL CONFIG ====================
+    # Email Configuration (SMTP)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True").lower() == "true"
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")
 
-    # Safe default for testing (works without domain verification)
-    RESEND_FROM_EMAIL = os.environ.get(
-        "RESEND_FROM_EMAIL", 
-        "TicketVibez <onboarding@resend.dev>"
-    )
+    # Resend (Keep for now as fallback or until fully removed)
+    # RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+
+    # # Safe default for testing (works without domain verification)
+    # RESEND_FROM_EMAIL = os.environ.get(
+    #     "RESEND_FROM_EMAIL", 
+    #     "TicketVibez <onboarding@resend.dev>"
+    # )
 
     # Frontend URL - VERY IMPORTANT for verification & reset links
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    BACKEND_URL = os.environ.get("VITE_API_BASE_URL", "http://localhost:5000")
+
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    BACKEND_URL = os.environ.get("VITE_API_BASE_URL", "http://localhost:5000")
+
 
     # M-Pesa
     MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY")
@@ -56,13 +71,13 @@ class Config:
     MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY")
     MPESA_CALLBACK_URL = os.environ.get("MPESA_CALLBACK_URL")
 
-    # Optional: Warn if Resend is not fully configured
-    @classmethod
-    def check_email_config(cls):
-        if not cls.RESEND_API_KEY:
-            print("WARNING: RESEND_API_KEY is not set. Emails will not be sent.")
-        if "onboarding@resend.dev" in cls.RESEND_FROM_EMAIL and not os.environ.get("RESEND_FROM_EMAIL"):
-            print("Using Resend default sender (onboarding@resend.dev). Good for testing.")
+    # # Optional: Warn if Resend is not fully configured
+    # @classmethod
+    # def check_email_config(cls):
+    #     if not cls.RESEND_API_KEY:
+    #         print("WARNING: RESEND_API_KEY is not set. Emails will not be sent.")
+    #     if "onboarding@resend.dev" in cls.RESEND_FROM_EMAIL and not os.environ.get("RESEND_FROM_EMAIL"):
+    #         print("Using Resend default sender (onboarding@resend.dev). Good for testing.")
 
 
 class DevelopmentConfig(Config):

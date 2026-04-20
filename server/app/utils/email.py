@@ -1,6 +1,11 @@
-import resend
-from flask import current_app, request
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from flask import current_app, request, jsonify
+from requests.auth import HTTPBasicAuth
+import requests
 from datetime import datetime
+import resend  # Keep for fallback if needed
 
 def send_email(to_email, subject, html_content):
     # Always print email content locally for easy testing
@@ -11,49 +16,65 @@ def send_email(to_email, subject, html_content):
     print(f"CONTENT:\n{html_content}")
     print("="*60 + "\n")
 
-    try:
-        # Check if API key exists and is not placeholder
-        api_key = current_app.config.get("RESEND_API_KEY")
-        if not api_key or api_key == "re_your_api_key_here":
-            print("Skipping Resend: No valid RESEND_API_KEY provided.")
-            current_app.logger.warning("Resend email skipped - No API key configured")
-            return {"success": False, "error": "No valid RESEND_API_KEY"}
+    # Try SMTP first if configured
+    if current_app.config.get("MAIL_USERNAME") and current_app.config.get("MAIL_PASSWORD"):
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config["MAIL_USERNAME"]
+            msg['To'] = to_email
+            msg['Subject'] = subject
 
-        resend.api_key = api_key
+            msg.attach(MIMEText(html_content, 'html'))
 
-        # Use safe default From address if not configured
-        from_email = current_app.config.get("RESEND_FROM_EMAIL", "TicketVibez <onboarding@resend.dev>")
+            server = smtplib.SMTP(current_app.config["MAIL_SERVER"], current_app.config["MAIL_PORT"])
+            if current_app.config.get("MAIL_USE_TLS"):
+                server.starttls()
+            
+            server.login(current_app.config["MAIL_USERNAME"], current_app.config["MAIL_PASSWORD"])
+            server.send_message(msg)
+            server.quit()
+            
+            print(f"SMTP SUCCESS: Email sent to {to_email}")
+            current_app.logger.info(f"SMTP email sent successfully to {to_email}")
+            return {"success": True, "method": "smtp"}
+        except Exception as e:
+            print(f"SMTP ERROR: {str(e)}")
+            current_app.logger.error(f"SMTP error: {str(e)}")
+    
+    # Fallback to Resend if SMTP fails or isn't configured
+    api_key = current_app.config.get("RESEND_API_KEY")
+    if api_key and api_key != "re_your_api_key_here":
+        try:
+            resend.api_key = api_key
+            from_email = current_app.config.get("RESEND_FROM_EMAIL", "TicketVibez <onboarding@resend.dev>")
+            
+            params = {
+                "from": from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+            }
+            
+            r = resend.Emails.send(params)
+            print(f"RESEND SUCCESS: Email sent! ID: {r.get('id')}")
+            current_app.logger.info(f"Resend email sent successfully to {to_email} | ID: {r.get('id')}")
+            return {"success": True, "id": r.get("id"), "method": "resend"}
+        except Exception as e:
+            print(f"RESEND API ERROR: {str(e)}")
+            current_app.logger.error(f"Resend failed for {to_email}: {str(e)}")
+            return {"success": False, "error": str(e)}
 
-        params = {
-            "from": from_email,
-            "to": [to_email],
-            "subject": subject,
-            "html": html_content,
-        }
-        
-        r = resend.Emails.send(params)
-        print(f"RESEND SUCCESS: Email sent! ID: {r.get('id')}")
-        current_app.logger.info(f"Resend email sent successfully to {to_email} | ID: {r.get('id')}")
-        
-        return {"success": True, "id": r.get("id")}
+    return {"success": False, "error": "No email provider configured (SMTP or Resend)"}
 
-    except Exception as e:
-        error_msg = str(e)
-        print(f"RESEND API ERROR: {error_msg}")
-        current_app.logger.error(f"Resend failed for {to_email}: {error_msg}")
-        return {"success": False, "error": error_msg}
-
+# External API config
+EXTERNAL_API_URL = "http://ec2-54-157-70-183.compute-1.amazonaws.com:8090/api/sendEmail"
+USERNAME = "admin"
+PASSWORD = "admin123"
 
 def send_verification_email(user, token):
-    # === CRITICAL CHANGE: Use Netlify frontend URL ===
-    frontend_url = current_app.config.get("FRONTEND_URL")
-    
-    if not frontend_url:
-        # Fallback for local development
-        frontend_url = "http://localhost:5173"
-    
-    frontend_url = frontend_url.rstrip("/")
-    
+    # Use environment variable for frontend URL, default to localhost for dev
+    frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    # backend_url = current_app.config.get("BACKEND_URL", "http://localhost:5000").rstrip("/")
     verify_url = f"{frontend_url}/verify?token={token}"
 
     subject = "Verify Your Email - TicketVibez"
@@ -82,15 +103,36 @@ def send_verification_email(user, token):
     </div>
     """
 
-    result = send_email(user.email, subject, html_content)
+    # result = send_email(user.email, subject, html_content)
 
-    if not result.get("success"):
+     # Build payload (you can validate/override here if needed)
+    payload = {
+        "to": [user.email],
+        "subject": subject,
+        "body": html_content,
+        "html": True
+    }
+
+    # print("Payload: " + payload)
+
+    # Make POST request with Basic Auth
+    result = requests.post(
+        EXTERNAL_API_URL,
+        json=payload,
+        auth=HTTPBasicAuth(USERNAME, PASSWORD),
+        headers={"Content-Type": "application/json"}
+    )
+
+    # print("Result: " + result)
+
+    if not result.status_code == 200:
         current_app.logger.warning(f"Verification email FAILED for {user.email}: {result.get('error')}")
-
     return result
+    # if not result.get("success"):
+    #     current_app.logger.warning(f"Verification email FAILED for {user.email}: {result.get('error')}")
+    # return result
 
 
-# Keep your other email functions (only small improvements for consistency)
 def send_login_notification_email(user):
     subject = "New Login Detected - TicketVibez"
     now = datetime.now().strftime("%B %d, %Y at %I:%M %p")
