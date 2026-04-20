@@ -2,6 +2,8 @@ import requests
 import base64
 from datetime import datetime
 from flask import current_app
+import logging
+
 
 
 def get_mpesa_access_token():
@@ -66,6 +68,7 @@ def initiate_stk_push(phone_number, amount, account_reference, transaction_desc)
         )
 
         response_data = response.json()
+        current_app.logger.info(f"Response data: " + str(response_data))
         if response_data.get("ResponseCode") == "0":
             return {
                 "success": True,
