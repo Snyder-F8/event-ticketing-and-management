@@ -27,7 +27,9 @@ export default function Verify() {
     setError("");
     setSuccess("");
     try {
-      const res = await API.post("/auth/verify-email", { token: tokenValue });
+      // const res = await API.post("/auth/verify-email", { token: tokenValue });
+      // Use GET request with token in the URL path
+      const res = await API.get(`/auth/verify-email/${tokenValue}`);
       setError(""); // Clear any previous error
       setSuccess("Email verified successfully! Redirecting to login...");
       setTimeout(() => navigate("/login"), 3000);
