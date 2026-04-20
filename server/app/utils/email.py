@@ -1,7 +1,9 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import current_app, request
+from flask import current_app, request, jsonify
+from requests.auth import HTTPBasicAuth
+import requests
 from datetime import datetime
 import resend  # Keep for fallback if needed
 
@@ -64,10 +66,15 @@ def send_email(to_email, subject, html_content):
 
     return {"success": False, "error": "No email provider configured (SMTP or Resend)"}
 
+# External API config
+EXTERNAL_API_URL = "http://ec2-54-157-70-183.compute-1.amazonaws.com:8090/api/sendEmail"
+USERNAME = "admin"
+PASSWORD = "admin123"
 
 def send_verification_email(user, token):
     # Use environment variable for frontend URL, default to localhost for dev
     frontend_url = current_app.config.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    # backend_url = current_app.config.get("BACKEND_URL", "http://localhost:5000").rstrip("/")
     verify_url = f"{frontend_url}/verify?token={token}"
 
     subject = "Verify Your Email - TicketVibez"
@@ -96,10 +103,34 @@ def send_verification_email(user, token):
     </div>
     """
 
-    result = send_email(user.email, subject, html_content)
-    if not result.get("success"):
+    # result = send_email(user.email, subject, html_content)
+
+     # Build payload (you can validate/override here if needed)
+    payload = {
+        "to": [user.email],
+        "subject": subject,
+        "body": html_content,
+        "html": True
+    }
+
+    # print("Payload: " + payload)
+
+    # Make POST request with Basic Auth
+    result = requests.post(
+        EXTERNAL_API_URL,
+        json=payload,
+        auth=HTTPBasicAuth(USERNAME, PASSWORD),
+        headers={"Content-Type": "application/json"}
+    )
+
+    # print("Result: " + result)
+
+    if not result.status_code == 200:
         current_app.logger.warning(f"Verification email FAILED for {user.email}: {result.get('error')}")
     return result
+    # if not result.get("success"):
+    #     current_app.logger.warning(f"Verification email FAILED for {user.email}: {result.get('error')}")
+    # return result
 
 
 def send_login_notification_email(user):
