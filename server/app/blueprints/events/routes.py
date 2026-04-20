@@ -11,6 +11,12 @@ from datetime import datetime
 events_bp = Blueprint("events", __name__, url_prefix="/api/events")
 
 
+@events_bp.route("/categories", methods=["GET"])
+def get_categories():
+    categories = Category.query.all()
+    return jsonify([c.name for c in categories]), 200
+
+
 def get_current_role():
     claims = get_jwt()
     return claims.get("role", "").lower()
@@ -142,7 +148,7 @@ def create_event():
             db.session.add(image)
 
         for cat_name in data.get("categories", []):
-            category = Category.query.filter_by(name=cat_name).first()
+            category = Category.query.filter(Category.name.ilike(cat_name)).first()
             if category:
                 event.categories.append(category)
 

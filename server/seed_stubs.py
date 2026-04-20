@@ -19,7 +19,7 @@ def seed_stubs():
         db.session.commit()
         
         # 2. Get Organizer
-        organizer = User.query.filter_by(email="organizer@example.com").first()
+        organizer = User.query.filter_by(email="organizer@ticketvibez.com").first()
         if not organizer:
             print("Organizer user not found. Please run seed.py first.")
             return
@@ -126,10 +126,12 @@ def seed_stubs():
                 # Image
                 db.session.add(Image(
                     event_id=event.id,
-                    image_url=f"{BASE_IMAGE_URL}/{s['image']}"
+                    image_url=s['image']
                 ))
             else:
-                print(f"Skipping '{s['title']}' - already exists.")
+                if existing_event.images:
+                    existing_event.images[0].image_url = s["image"]
+                print(f"Updated image for '{s['title']}' - already exists.")
         
         db.session.commit()
         print("Stub events seeded successfully.")

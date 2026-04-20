@@ -67,7 +67,7 @@ def seed_data():
         print("Users seeded.")
 
         # 3. Categories
-        categories = ["Music", "Tech", "Business", "Sports", "Art", "Food"]
+        categories = ["Music", "Technology", "Sports", "Art & Culture", "Food & Drink", "Theatre", "Education"]
         for c in categories:
             if not Category.query.filter_by(name=c).first():
                 db.session.add(Category(name=c))
@@ -85,7 +85,8 @@ def seed_data():
                     "description": "An evening of live orchestral and modern music.",
                     "location": "Garden Square, Nairobi",
                     "event_date": datetime.now() + timedelta(days=45),
-                    "status": "pending",
+                    "status": "approved",
+                    "image": "https://images.unsplash.com/photo-1459749411177-042180ceea72?auto=format&fit=crop&q=80&w=1000",
                     "tickets": [
                         {"name": "Regular", "price": 1000, "quantity": 500},
                         {"name": "VIP", "price": 3500, "quantity": 100}
@@ -97,6 +98,7 @@ def seed_data():
                     "location": "Sarit Expo Centre",
                     "event_date": datetime.now() + timedelta(days=60),
                     "status": "approved",
+                    "image": "https://images.unsplash.com/photo-1540575861501-7ad0582371f3?auto=format&fit=crop&q=80&w=1000",
                     "tickets": [
                         {"name": "Early Bird", "price": 2000, "quantity": 200},
                         {"name": "Standard", "price": 5000, "quantity": 300}
@@ -107,7 +109,8 @@ def seed_data():
                     "description": "5km run to support local schools.",
                     "location": "Karura Forest",
                     "event_date": datetime.now() + timedelta(days=20),
-                    "status": "pending",
+                    "status": "approved",
+                    "image": "https://images.unsplash.com/photo-1530549387631-afb16881127e?auto=format&fit=crop&q=80&w=1000",
                     "tickets": [
                         {"name": "Registration", "price": 500, "quantity": 1000}
                     ]
@@ -118,6 +121,7 @@ def seed_data():
                     "location": "Village Market",
                     "event_date": datetime.now() + timedelta(days=15),
                     "status": "approved",
+                    "image": "https://images.unsplash.com/photo-1460666819451-753e99870711?auto=format&fit=crop&q=80&w=1000",
                     "tickets": [
                         {"name": "Day Pass", "price": 800, "quantity": 400}
                     ]
@@ -131,11 +135,15 @@ def seed_data():
                         description=ed["description"],
                         location=ed["location"],
                         event_date=ed["event_date"],
-                        status=ed["status"],
+                        status="approved",
                         organizer_id=organizer.id
                     )
                     db.session.add(event)
                     db.session.flush()   # Get the event ID for tickets
+
+                    # Add Image
+                    from app.models.event import Image
+                    db.session.add(Image(event_id=event.id, image_url=ed["image"]))
 
                     for td in ed["tickets"]:
                         db.session.add(TicketType(
