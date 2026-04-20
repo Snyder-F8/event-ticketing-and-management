@@ -1,31 +1,41 @@
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
+
 from app.extensions import db
 from app.models.user import User, Role
-from app.utils.email import send_verification_email, send_login_notification_email, send_reset_password_email
-from datetime import datetime, timedelta
+from app.utils.email import (
+    send_verification_email,
+    send_login_notification_email,
+    send_reset_password_email
+)
 
 
-# REGISTER
-def register_user(name: str, email: str, password: str, role_name: str = "User"):
+# ====================== REGISTER ======================
+def register_user(name: str, email: str, password: str, role_name: str = "Attendee"):
     # Duplicate check
     if User.query.filter_by(email=email).first():
         return {"error": "A user with this email already exists."}, 409
 
-    # Role lookup
+    # Normalize and validate role
     if role_name:
-        role_name = role_name.title()
+        role_name = role_name.strip().title()
+    else:
+        role_name = "Attendee"
+
+    # Only allow these roles during self-registration
+    allowed_registration_roles = {"Attendee", "Organizer"}
+    if role_name not in allowed_registration_roles and role_name != "Admin":
+        role_name = "Attendee"   # safe fallback
+
     role = Role.query.filter_by(name=role_name).first()
     if not role:
-        return {"error": f"Role '{role_name}' does not exist."}, 400
+        return {"error": f"Role '{role_name}' does not exist. Please contact support."}, 400
 
     hashed_password = generate_password_hash(password)
-
     verification_token = secrets.token_urlsafe(32)
 
-    # Create user
     user = User(
         name=name,
         email=email,
@@ -34,15 +44,15 @@ def register_user(name: str, email: str, password: str, role_name: str = "User")
         is_verified=False,
         verification_token=verification_token,
     )
+
     db.session.add(user)
     db.session.commit()
 
-    # Send verification email immediately
+    # Send verification email
     send_verification_email(user, verification_token)
-    message = "Registration successful. Please verify your email."
 
     return {
-        "message": message,
+        "message": "Registration successful. Please verify your email.",
         "user": {
             "id": user.id,
             "name": user.name,
@@ -53,7 +63,7 @@ def register_user(name: str, email: str, password: str, role_name: str = "User")
     }, 201
 
 
-# LOGIN
+# ====================== LOGIN ======================
 def login_user(email: str, password: str):
     user = User.query.filter_by(email=email).first()
 
@@ -63,11 +73,11 @@ def login_user(email: str, password: str):
     if not user.is_verified:
         return {"error": "Please verify your email before logging in."}, 403
 
-    # JWT generation
+    # Generate JWT token
     access_token = create_access_token(
         identity=str(user.id),
         additional_claims={
-            "role": user.role.name,
+            "role": user.role.name if user.role else None,
             "email": user.email,
         },
         expires_delta=timedelta(hours=24),
@@ -83,11 +93,12 @@ def login_user(email: str, password: str):
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "role": user.role.name,
+            "role": user.role.name if user.role else None,
         },
     }, 200
 
-# VERIFY EMAIL
+
+# ====================== VERIFY EMAIL ======================
 def verify_email(token: str):
     user = User.query.filter_by(verification_token=token).first()
 
@@ -99,8 +110,9 @@ def verify_email(token: str):
     db.session.commit()
 
     return {"message": "Email verified successfully. You can now log in."}, 200
-    
-# RESEND VERIFICATION
+
+
+# ====================== RESEND VERIFICATION ======================
 def resend_verification(email: str):
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -112,11 +124,12 @@ def resend_verification(email: str):
     user.verification_token = new_token
     db.session.commit()
 
-    # Send verification email
     send_verification_email(user, new_token)
 
     return {"message": "A new verification link has been sent to your email."}, 200
-# GET ALL USERS (Admin only)
+
+
+# ====================== GET ALL USERS ======================
 def get_all_users():
     users = User.query.all()
 
@@ -128,16 +141,17 @@ def get_all_users():
             "email": user.email,
             "role": user.role.name if user.role else None,
             "is_verified": user.is_verified,
-            "created_at": str(user.created_at) if user.created_at else None,
+            "created_at": str(user.created_at) if hasattr(user, 'created_at') and user.created_at else None,
         })
 
     return {"users": users_list, "total": len(users_list)}, 200
 
-# REQUEST PASSWORD RESET
+
+# ====================== REQUEST PASSWORD RESET ======================
 def request_password_reset(email: str):
     user = User.query.filter_by(email=email).first()
     if not user:
-        # For security, we return 200 even if email doesn't exist so we don't leak user existence
+        # Don't reveal if email exists (security)
         return {"message": "If an account with that email exists, a reset link has been sent."}, 200
 
     reset_token = secrets.token_urlsafe(32)
@@ -145,19 +159,19 @@ def request_password_reset(email: str):
     user.reset_password_expires = datetime.utcnow() + timedelta(hours=1)
     db.session.commit()
 
-    # Send reset email
     send_reset_password_email(user, reset_token)
 
     return {"message": "A reset link has been sent to your email."}, 200
 
-# RESET PASSWORD
+
+# ====================== RESET PASSWORD ======================
 def reset_password(token: str, new_password: str):
     user = User.query.filter_by(reset_password_token=token).first()
-    
+
     if not user:
         return {"error": "Invalid or expired reset token."}, 400
-        
-    if user.reset_password_expires < datetime.utcnow():
+
+    if user.reset_password_expires and user.reset_password_expires < datetime.utcnow():
         return {"error": "Reset token has expired."}, 400
 
     hashed_password = generate_password_hash(new_password)
