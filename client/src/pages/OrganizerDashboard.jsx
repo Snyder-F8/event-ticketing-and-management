@@ -49,6 +49,17 @@ export default function OrganizerDashboard() {
   ]);
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [stats, setStats] = useState({
+    total_revenue: 0,
+    total_tickets_sold: 0,
+    events_count: 0,
+    sales_by_type: [],
+    revenue_by_month: []
+  });
+
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   
   // Image states
   const [imageType, setImageType] = useState('url'); // 'url' or 'upload'
@@ -58,19 +69,21 @@ export default function OrganizerDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await API.get("/api/events/my-events");
-        const fetchedEvents = res.data.events || [];
-        setEvents(fetchedEvents);
+        const [eventsRes, statsRes] = await Promise.all([
+          API.get("/api/events/my-events"),
+          API.get("/api/tickets/organizer-stats")
+        ]);
+
+        const fetchedEvents = eventsRes.data.events || [];
+        const fetchedStats = statsRes.data || {};
         
-        // Calculate metrics
-        const totalEvents = fetchedEvents.length;
-        const totalCapacity = fetchedEvents.reduce((acc, curr) => acc + (Number(curr.capacity) || 0), 0);
-        // Revenue could be calculated from tickets sold if available in the model
+        setEvents(fetchedEvents);
+        setStats(fetchedStats);
         
         setMetrics([
-          { title: "Total Events", value: totalEvents.toString() },
-          { title: "Total Capacity", value: totalCapacity.toLocaleString() },
-          { title: "Revenue", value: "KES 0" }, // Keep static for now or calculate if possible
+          { title: "Total Events", value: fetchedStats.events_count?.toString() || "0" },
+          { title: "Total Sold", value: fetchedStats.total_tickets_sold?.toLocaleString() || "0" },
+          { title: "Revenue", value: `KES ${fetchedStats.total_revenue?.toLocaleString() || "0"}` },
         ]);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -94,6 +107,34 @@ export default function OrganizerDashboard() {
     setNewEvent({ ...newEvent, image_url: "" });
   };
 
+  const handleEditClick = (event) => {
+    setIsEditing(true);
+    setEditingId(event.id);
+    
+    // Parse raw_date (ISO) into date and time
+    let dateStr = "";
+    let timeStr = "";
+    if (event.raw_date) {
+      const dt = new Date(event.raw_date);
+      dateStr = dt.toISOString().split("T")[0];
+      timeStr = dt.toTimeString().split(" ")[0].slice(0, 5); // HH:mm
+    }
+
+    setNewEvent({
+      title: event.title,
+      category: event.categories?.[0] || "",
+      description: event.description,
+      date: dateStr,
+      time: timeStr,
+      capacity: event.capacity || "",
+      location: event.location,
+      image_url: event.images?.[0]?.image_url || ""
+    });
+    setTicketTypes(event.ticket_types || [{ name: "General", price: "1000", capacity: "100" }]);
+    setImagePreview(event.images?.[0]?.image_url || "");
+    setShowModal(true);
+  };
+
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     try {
@@ -112,7 +153,7 @@ export default function OrganizerDashboard() {
         title: newEvent.title,
         description: newEvent.description,
         location: newEvent.location,
-        event_date: `${newEvent.date}T${newEvent.time}:00`,
+        event_date: newEvent.date && newEvent.time ? `${newEvent.date}T${newEvent.time}:00` : undefined,
         image_url: finalImageUrl,
         categories: newEvent.category ? [newEvent.category] : [],
         ticket_types: ticketTypes.map(tt => ({
@@ -122,24 +163,32 @@ export default function OrganizerDashboard() {
         }))
       };
 
-      const res = await API.post("/api/events", eventPayload);
-      setEvents((prev) => [res.data.event, ...prev]);
+      if (isEditing) {
+        const res = await API.put(`/api/events/${editingId}`, eventPayload);
+        setEvents((prev) => prev.map(ev => ev.id === editingId ? res.data.event : ev));
+      } else {
+        const res = await API.post("/api/events", eventPayload);
+        setEvents((prev) => [res.data.event, ...prev]);
+      }
+
       setShowModal(false);
+      setIsEditing(false);
+      setEditingId(null);
       setNewEvent({ title: "", category: "", description: "", date: "", time: "", capacity: "", location: "", image_url: "" });
       setTicketTypes([{ name: "General", price: "1000", capacity: "100" }]);
       clearImage();
     } catch (err) {
-      console.error("Create event error:", err.response?.data || err);
-      alert(err.response?.data?.errors ? JSON.stringify(err.response.data.errors) : "Failed to create event. Please try again.");
+      console.error("Event operation error:", err.response?.data || err);
+      alert(err.response?.data?.errors ? JSON.stringify(err.response.data.errors) : "Operation failed. Please try again.");
     }
   };
 
   const revenueData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+    labels: stats.revenue_by_month.length > 0 ? stats.revenue_by_month.map(m => m.month) : ["Jan", "Feb", "Mar", "Apr", "May"],
     datasets: [
       { 
         label: "Revenue (KES)", 
-        data: [10000, 45000, 15000, 80000, 55000], 
+        data: stats.revenue_by_month.length > 0 ? stats.revenue_by_month.map(m => m.revenue) : [0, 0, 0, 0, 0], 
         backgroundColor: "rgba(16, 185, 129, 0.1)", 
         borderColor: "#10b981", 
         borderWidth: 3,
@@ -154,11 +203,11 @@ export default function OrganizerDashboard() {
   };
 
   const ticketsData = {
-    labels: ["VIP", "Regular", "Early Bird", "Student"],
+    labels: stats.sales_by_type.length > 0 ? stats.sales_by_type.map(s => s.name) : ["None"],
     datasets: [
       { 
         label: "Tickets Sold", 
-        data: [50, 400, 250, 100], 
+        data: stats.sales_by_type.length > 0 ? stats.sales_by_type.map(s => s.value) : [0], 
         backgroundColor: ["#f59e0b", "#4C8CF7", "#8b5cf6", "#10b981"],
         borderRadius: 6,
         barThickness: 32,
@@ -300,7 +349,13 @@ export default function OrganizerDashboard() {
               <p className="text-muted text-sm mt-1">Manage your event portfolio and track sales.</p>
             </div>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                setIsEditing(false);
+                setNewEvent({ title: "", category: "", description: "", date: "", time: "", capacity: "", location: "", image_url: "" });
+                setTicketTypes([{ name: "General", price: "1000", capacity: "100" }]);
+                clearImage();
+                setShowModal(true);
+              }}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-white text-sm font-semibold transition-all shadow-glow hover:-translate-y-0.5"
             >
               <FaPlus size={12} /> Create Event
@@ -371,24 +426,34 @@ export default function OrganizerDashboard() {
               <table className="min-w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-white border-b border-blue-10">
                   <tr>
-                    <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Event Name</th>
+                    <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Event</th>
                     <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Date</th>
                     <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Location</th>
                     <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Capacity</th>
                     <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Status</th>
+                    <th className="px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-blue-5">
                   {events.length > 0 ? events.map((event, idx) => (
                     <tr key={idx} className="hover:bg-blue-5/30 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-heading">{event.title}</div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-blue-5 overflow-hidden flex-shrink-0 border border-blue-10">
+                            {event.images?.[0]?.image_url ? (
+                              <img src={event.images[0].image_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-300"><FaImage /></div>
+                            )}
+                          </div>
+                          <div className="font-semibold text-heading max-w-[200px] truncate">{event.title}</div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-gray-700">{event.event_date}</td>
-                      <td className="px-6 py-4 text-gray-700 flex items-center gap-2">
-                        <FaMapMarkerAlt className="text-gray-400" /> {event.location}
+                      <td className="px-6 py-4 text-gray-700 max-w-[150px] truncate">
+                        {event.location}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-700">{event.capacity}</td>
+                      <td className="px-6 py-4 font-medium text-gray-700">{event.capacity || "Unlimited"}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
                           ${event.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
@@ -402,6 +467,14 @@ export default function OrganizerDashboard() {
                           }`}></span>
                           {event.status ? event.status.charAt(0).toUpperCase() + event.status.slice(1) : 'Pending'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          onClick={() => handleEditClick(event)}
+                          className="px-4 py-1.5 rounded-lg bg-white border border-blue-20 text-primary text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition-all"
+                        >
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   )) : (
@@ -439,8 +512,8 @@ export default function OrganizerDashboard() {
             
             <div className="flex-shrink-0 z-10 px-8 py-6 flex justify-between items-center bg-[#f5f5f7]/80 backdrop-blur-xl border-b border-gray-200/50 rounded-t-[32px]">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-gray-900">Create Event</h2>
-                <p className="text-sm font-medium text-gray-500 mt-0.5">Design your next great experience.</p>
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900">{isEditing ? "Edit Event" : "Create Event"}</h2>
+                <p className="text-sm font-medium text-gray-500 mt-0.5">{isEditing ? "Refine your event details." : "Design your next great experience."}</p>
               </div>
               <button 
                 onClick={() => setShowModal(false)} 
@@ -709,7 +782,7 @@ export default function OrganizerDashboard() {
                     type="submit"
                     className="w-full py-4 rounded-[18px] bg-blue-600 hover:bg-blue-500 text-white text-[16px] font-semibold tracking-wide shadow-[0_4px_14px_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/20"
                   >
-                    Publish Event
+                    {isEditing ? "Save Changes" : "Publish Event"}
                   </button>
                 </div>
               </form>
