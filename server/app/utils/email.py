@@ -67,9 +67,9 @@ def send_email(to_email, subject, html_content):
     return {"success": False, "error": "No email provider configured (SMTP or Resend)"}
 
 # External API config
-EXTERNAL_API_URL = "http://ec2-54-157-70-183.compute-1.amazonaws.com:8090/api/sendEmail"
-USERNAME = "admin"
-PASSWORD = "admin123"
+EXTERNAL_API_URL = ""
+USERNAME = ""
+PASSWORD = ""
 
 def send_verification_email(user, token):
     # Use environment variable for frontend URL, default to localhost for dev
